@@ -15,26 +15,31 @@ To start using the message relay, simply include the file message_relay.js at al
 
 Just create a new instance of the relay at the level you are in, passing in a namespace for your relays and the current level. For example if I had scripts injected into the current page's context and the message relay was also injected, I could set it up with:
 
-	var my_page_msg_relay = message_relay( "myextension.namespace', "page" );
+```javascript
+var my_page_msg_relay = message_relay( "myextension.namespace', "page" );
+```
 
 Then, within that same page I can listen for any specific communications sent to that level by using the 'on' function:
 
-	my_callback_function = function( msg_data ){
-    	console.log(msg_data); //will output any data sent with this messgae
-    };
-    
-    my_page_msg_relay.on( "foo.bar" , my_callback_function )
+```javascript
+function my_callback_function( msg_data ){
+    console.log(msg_data); //will output any data sent with this messgae
+};
+
+my_page_msg_relay.on( "foo.bar" , my_callback_function )
+```    
     
 Now, at any other context level of my extension I can communicate with this page script by using a message relay on that level. For example, if I setup a messgae relay in the content script level then another one in the background page, I can communicate down to the page script from the background page like so:
 
-	var background_pg_msg_relay = message_relay( "myextension.namespace', "page" );
-    
-    background_pg_msg_relay.send(
-    	'foo.bar',
-        background_pg_msg_relay.levels.page,
-        { my_data: "test" }
-    );
-    
+```javascript
+var background_pg_msg_relay = message_relay( "myextension.namespace', "extension" );
+
+background_pg_msg_relay.send(
+    'foo.bar',
+    background_pg_msg_relay.levels.page,
+    { my_data: "test" }
+);
+```
     
 ###Notes
 
