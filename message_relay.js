@@ -1,8 +1,4 @@
-/*
-Simple message relay class to facilitate easy cross-context communication for Google Chrome Extensions
-Authored by Evan Carothers @ Docalytics
-https://github.com/Docalytics/chrome-extension-message-relay
-*/
+"use strict"
 
 function message_relay( namespace, relay_level, debug ){
 
@@ -65,14 +61,14 @@ function message_relay( namespace, relay_level, debug ){
     //send a message DOWN the listening stack (exposed as <instance>.send_down)
     var _send_down = function( msg_type, destination, data, cb ){
         var msg = _get_msg( msg_type, destination, false, data );
-        _log(true, "Send msg DOWN from "+level+" to "+destination+" : "+msg_type+" - "+JSON.stringify(data));
+        _log( "Send msg DOWN from "+level+" to "+destination+" : "+msg_type+" - "+JSON.stringify(data));
         _relay( msg, cb );
     };
 
     //send a message UP the listening stack (exposed as <instance>.send_up)
     var _send_up = function( msg_type, destination, data, cb ){
         var msg = _get_msg( msg_type, destination, true, data );
-        _log(true, "Send msg UP from "+level+" to "+destination+" : "+msg_type+" - "+ JSON.stringify(data));
+        _log( "Send msg UP from "+level+" to "+destination+" : "+msg_type+" - "+ JSON.stringify(data));
         _relay( msg, cb );
     };
 
@@ -80,7 +76,7 @@ function message_relay( namespace, relay_level, debug ){
     var _relay = function( data, cb ){
         if( (level==_levels.extension) && _levels[data['msg_destination']] < _levels.extension ){
             //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
-            chrome.tabs.getAllInWindow(null, function(tabs){
+            chrome.tabs.query({}, function(tabs){
                 for (var i = 0; i < tabs.length; i++) {
                     chrome.tabs.sendMessage(tabs[i].id, data, function(response){
                         if(cb) cb(response);
@@ -101,7 +97,7 @@ function message_relay( namespace, relay_level, debug ){
 
     //This function is called for every incoming message to this level and determines if the messsage is intended for this level
     //(and calls needed listeners) or continues relaying it upwards/downwards
-    _incoming_message = function( msg, responder ){
+    var _incoming_message = function( msg, responder ){
         var msg_data =          msg.msg_data,
             msg_from =          msg.msg_from,
             msg_up =            msg.msg_up,
@@ -143,9 +139,9 @@ function message_relay( namespace, relay_level, debug ){
     };
 
     var _log = function( msg ){
-        if(!debug) return;
+        if(!_debug) return;
         console.log("::MSG-RELAY ("+level+"):: "+msg);
-    }
+    };
 
     if( [_levels.page,_levels.content,_levels.iframe].indexOf(level) != -1  ){
         //this relay is in the page, content, or iframe level so setup listener for postmessage calls
@@ -175,4 +171,4 @@ function message_relay( namespace, relay_level, debug ){
         on: _bind,
         send: _send_msg
     };
-};
+}
