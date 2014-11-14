@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 function message_relay( namespace, relay_level, debug ){
 
@@ -74,6 +74,7 @@ function message_relay( namespace, relay_level, debug ){
 
     //This function is used by both send_up and send_down to relay a message the proper direction
     var _relay = function( data, cb ){
+
         if( (level==_levels.extension) && _levels[data['msg_destination']] < _levels.extension ){
             //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
             chrome.tabs.query({}, function(tabs){
@@ -90,7 +91,11 @@ function message_relay( namespace, relay_level, debug ){
             });
         }else{
             //no interaction with extension background, broadcast w/ postmessage
-            window.postMessage(data, "*");
+            if( level == 'iframe' ){
+                window.parent.postMessage(data, "*");
+            }else{
+                window.postMessage(data, "*");
+            }
         }
     };
 
@@ -147,9 +152,6 @@ function message_relay( namespace, relay_level, debug ){
         //this relay is in the page, content, or iframe level so setup listener for postmessage calls
         window.addEventListener('message', function(event){
             var evt_data = event.data;
-            try{
-                if(typeof(evt_data) != 'object') evt_data = JSON.parse(evt_data);
-            }catch(err){}
             if(typeof(evt_data)=='object' && 'msg_name' in evt_data && (evt_data.msg_name == msg_namespace)){
                 _incoming_message( evt_data, null );
             }
