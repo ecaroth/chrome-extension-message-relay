@@ -91,8 +91,16 @@ function message_relay( namespace, relay_level, debug ){
             });
         }else{
             //no interaction with extension background, broadcast w/ postmessage
-            if( level == 'iframe' ){
+            if( level == _levels.iframe ) {
                 window.parent.postMessage(data, "*");
+            }else if( (level==_levels.page || level==_levels.content) && data['msg_destination']==_levels.iframe){
+                //TODO: add support for targetting a specific iframe domain or DOM elem?
+                var iframes = document.getElementsByTagName('iframe');
+                for(var i=0; i<iframes.length; i++){
+                    try{
+                        iframes[i].contentWindow.postMessage(data, "*");
+                    }catch(e){}
+                }
             }else{
                 window.postMessage(data, "*");
             }
