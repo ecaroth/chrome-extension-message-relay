@@ -38,6 +38,9 @@ function message_relay( namespace, relay_level, debug ){
         //dest = detination level (one of _levels)
         //up = boolean, is this message going upwards (else going down)
         //data = javascript variable to pass with message
+        if(!data) data = {};
+        var msg_id = ('msg_id' in data) ? data['msg_id'] : dest+":"+type+":"+(new Date().getTime());
+        data['msg_id'] = msg_id;
         return {
             msg_type:           type,
             msg_from:           level,
@@ -45,7 +48,7 @@ function message_relay( namespace, relay_level, debug ){
             msg_up:             up,
             msg_name:           msg_namespace,
             msg_data:           data,
-            msg_id:             dest+":"+type+":"+(new Date().getTime())
+            msg_id:             msg_id
         }
     };
 
@@ -75,7 +78,7 @@ function message_relay( namespace, relay_level, debug ){
     //This function is used by both send_up and send_down to relay a message the proper direction
     var _relay = function( data, cb ){
 
-        if( (level==_levels.extension) && _levels[data['msg_destination']] < _levels.extension ){
+        if( level==_levels.extension && _levels[data['msg_destination']] < _levels.extension ){
             //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
             chrome.tabs.query({}, function(tabs){
                 for (var i = 0; i < tabs.length; i++) {
@@ -87,7 +90,7 @@ function message_relay( namespace, relay_level, debug ){
         }else if( (level==_levels.content && data['msg_destination']==_levels.extension) || level==_levels.extension ){
             //going form content script to extension.. use chrome runtime sendmessage
             chrome.runtime.sendMessage( data, function(response) {
-                if(cb) cb(response);
+                if(cb && typeof(cb)=='function') cb(response);
             });
         }else{
             //no interaction with extension background, broadcast w/ postmessage
@@ -121,18 +124,20 @@ function message_relay( namespace, relay_level, debug ){
             //message already received - need this because page scripts and content scripts listen at same postMessage level and we don't want to relay it twice if it's a pass-through
             return;
         }
-        _log( "Msg ("+msg_type+") received from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
 
         if( msg_destination == level ){
             //message intended for this level, call any bound listeners
+            _log( "Msg ("+msg_type+") received from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
             received_messages.push(msg_id);
             _call_bound_listeners( msg_type, msg_data, responder );
         }else{
             //message still bubbling up/down.. just relay if needed
             msg.msg_from = level;
-            if(msg_up && (_level_order[level]-1)==_level_order[msg_from]) {
+            if(msg_up && _level_order[level] > _level_order[msg_from]){
+                _log( "Msg ("+msg_type+") relaying UP from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
                 _relay( msg );
-            }else if( (_level_order[level]+1)==_level_order[msg_from]){
+            }else if(!msg_up && _level_order[level] < _level_order[msg_from]){
+                _log( "Msg ("+msg_type+") relaying DOWN "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
                 _relay( msg );
             }
         }
