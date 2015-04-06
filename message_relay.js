@@ -8,13 +8,15 @@ function message_relay( namespace, relay_level, debug ){
         extension:  'extension',
         content:    'content',
         page:       'page',
-        iframe:     'iframe'
+        iframe:     'iframe',
+        iframe_shim:'iframe_shim'
     };
     var _level_order = {            //ordering of levels (indicitive of how messages can bubble up/down)
         extension: 4,
         content: 3,
         page: 2,
-        iframe: 1
+        iframe_shim: 1,
+        iframe: 0
     };
 
     var level = relay_level;                    //relay level (one of 'content','page','iframe','extension') - the level that THIS relay is listening at
@@ -94,7 +96,7 @@ function message_relay( namespace, relay_level, debug ){
             });
         }else{
             //no interaction with extension background, broadcast w/ postmessage
-            if( level == _levels.iframe ) {
+            if( level == _levels.iframe || level == _levels.iframe_shim ) {
                 window.parent.postMessage(data, "*");
             }else if( (level==_levels.page || level==_levels.content) && data['msg_destination']==_levels.iframe){
                 //TODO: add support for targetting a specific iframe domain or DOM elem?
@@ -120,6 +122,7 @@ function message_relay( namespace, relay_level, debug ){
             msg_destination =   msg.msg_destination,
             msg_type =          msg.msg_type,
             msg_id =            msg.msg_id;
+
         if(msg_from==level || received_messages.indexOf(msg_id) != -1){
             //message already received - need this because page scripts and content scripts listen at same postMessage level and we don't want to relay it twice if it's a pass-through
             return;
@@ -132,6 +135,7 @@ function message_relay( namespace, relay_level, debug ){
             _call_bound_listeners( msg_type, msg_data, responder );
         }else{
             //message still bubbling up/down.. just relay if needed
+            var _msg_from = msg_from;
             msg.msg_from = level;
             if(msg_up && _level_order[level] > _level_order[msg_from]){
                 _log( "Msg ("+msg_type+") relaying UP from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
@@ -161,7 +165,7 @@ function message_relay( namespace, relay_level, debug ){
         console.log("::MSG-RELAY ("+level+"):: "+msg);
     };
 
-    if( [_levels.page,_levels.content,_levels.iframe].indexOf(level) != -1  ){
+    if( [_levels.page,_levels.content,_levels.iframe,_levels.iframe_shim].indexOf(level) != -1  ){
         //this relay is in the page, content, or iframe level so setup listener for postmessage calls
         window.addEventListener('message', function(event){
             var evt_data = event.data;

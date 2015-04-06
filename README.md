@@ -88,6 +88,9 @@ This function allows a relay to send a message to a specific destination level, 
 This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the `.send()` function above:
 
 * iframe
+* iframe_shim
 * page
 * content
 * extension
+
+**NOTE** - Iframe shim is an intermediary iframe intended for use for extensions that cannot load iframes on a page due to CSP (content security policy) preventing it on page, regardless of manifest settings. This allows you to load an iframe from chrome-extension:// that just loads another iframe within to your intended SRC. The iframe_shim level lets messages flow properly from the child iframe up to the content scripts (and further up the context)
