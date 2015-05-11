@@ -9,6 +9,7 @@ A message relay class to make development of Chrome Extensions faster and easier
 To start using the message relay, simply include the file message_relay.js at all levels of your extension you need communication. The message relay can be used:
 
 * In iframes on the page
+* In iframes shims on the page (used to shim an iframe's contents with another iframe served from the chrome extension URL to bypass CSP restrictions in extensions that work in Gmail)
 * On the page itself (injected into the page's context)
 * In your content scripts
 * In the extension's context (background pages/scripts)
@@ -32,7 +33,7 @@ my_page_msg_relay.on( "foo.bar" , my_callback_function )
 Now, at any other context level of my extension I can communicate with this page script by using a message relay on that level. For example, if I setup a messgae relay in the content script level then another one in the background page, I can communicate down to the page script from the background page like so:
 
 ```javascript
-var background_pg_msg_relay = message_relay( "myextension.namespace", "extension" );
+var background_pg_msg_relay = message_relay( "myextension.relay_namespace", "extension" );
 
 background_pg_msg_relay.send(
     "foo.bar",
@@ -43,7 +44,7 @@ background_pg_msg_relay.send(
     
 ###Notes
 
-For the relay to work properly, you must have created relays that are listening each level of the communication stack. For example, if you have a relay on the web page and one in the backgroud page, they will not be able to communicate because there meeds to also be a listener active on the content script level for that page.
+In some cases for the relay to work properly, you must have created relays that are listening each level of the communication stack. For example, if you have a relay on the web page and one in the backgroud page, they will not be able to communicate because there meeds to also be a listener active on the content script level for that page.
 
 Also - relays only communicate with others that were created on the same namespace, however you can create multiple relays with different namespaces for different purposes to suit your needs, though that's a very odd use case during extension development
 
@@ -54,7 +55,7 @@ You can create a new message relay at the desired level by instantiating it, pas
 
 ```javascript		
 var relay = message_relay( 
-    my_namespace, //string
+    my_relay_namespace, //string
     current_level, //string enum(page|iframe|content|extension)
     debug_mode //string 
 );
@@ -67,14 +68,14 @@ Once created you have access to the following functions on the object:
 ####.on( msg_type, cb )
 This function gives the ability to listen for incoming messages to this context level (from any other level) and execute a callback when the message is received. The bound listener executes each time the message is incoming, and stays bound until the relay is destroyed.
 
-`msg_type` (string) name of the message you want to listen for
+`msg_type` (string) name of the message you want to listen for or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else left in the global namspeace
 
 `cb` = callback function when message is received, takes 1 argument which is incoming message data
 
 ####.send( msg_type, destination, data, cb )
 This function allows a relay to send a message to a specific destination level, which will be intercepted by any listeners at that context level.
 
-`msg_type` (string) name of the message you wish to send
+`msg_type` (string) name of the message you wish to send or (array) or multiple message types
 
 `destination` (string) the destination level (one of the enum levels listed below)
 
@@ -83,6 +84,12 @@ This function allows a relay to send a message to a specific destination level, 
 `cb` (function) callback function that can be used by the listener to respond to the message directly. 
 
 **NOTE** *the responder callback functionality only works when sending communications between a content script and a background script, as it leverages [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage)*
+
+####.off( msg_type )
+This function allows you to unbind msg type listeners from this relay, or all message types in a namespace for this relay.
+
+`msg_type` (string) name of the message you want to unbind or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else if no namespace is supplied ALL messages of that type(s) will be unbound
+
 
 ####.levels
 This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the `.send()` function above:

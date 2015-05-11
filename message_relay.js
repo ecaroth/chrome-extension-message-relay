@@ -2,35 +2,61 @@
 
 function message_relay( namespace, relay_level, debug ){
 
-    var _debug = debug || false;
+    var _debug = debug || false,
 
-    var _levels = {                 //available levels msg relay can be used at
-        extension:  'extension',
-        content:    'content',
-        page:       'page',
-        iframe:     'iframe',
-        iframe_shim:'iframe_shim'
-    };
-    var _level_order = {            //ordering of levels (indicitive of how messages can bubble up/down)
-        extension: 4,
-        content: 3,
-        page: 2,
-        iframe_shim: 1,
-        iframe: 0
-    };
+        _levels = {                             //available levels msg relay can be used at
+            extension:  'extension',
+            content:    'content',
+            page:       'page',
+            iframe:     'iframe',
+            iframe_shim:'iframe_shim'
+        },
+        _level_order = {                        //ordering of levels (indicitive of how messages can bubble up/down)
+            extension: 4,
+            content: 3,
+            page: 2,
+            iframe_shim: 1,
+            iframe: 0
+        },
 
-    var level = relay_level;                    //relay level (one of 'content','page','iframe','extension') - the level that THIS relay is listening at
-    var received_messages = [];                 //digest of all received messages (in debug mode only)
-    var valid_windows = [];                     //list of valid windows that can access message relay (parent windows, iframes in pages, etc)
-    var msg_namespace = namespace;              //the namespace for your msg relay - used to capture and identify relay msgs from other postMsg traffic "docalytics.message";   //
-    var listeners = {};                         //bound listeners for the relay (at this level)
+        level = relay_level,                    //relay level (one of 'content','page','iframe','extension') - the level that THIS relay is listening at
+        received_messages = [],                 //digest of all received messages (in debug mode only)
+        valid_windows = [],                     //list of valid windows that can access message relay (parent windows, iframes in pages, etc)
+        msg_namespace = namespace,              //the namespace for your msg relay - used to capture and identify relay msgs from other postMsg traffic "docalytics.message";   //
+        listeners = {};                         //bound listeners for the relay (at this level)
 
     //this function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
-    var _bind = function( msg_types, cb ){
+    //you can also namespace msg types with msg_type.namespace, or specify no namespace
+    function _bind( msg_types, cb ){
         if(typeof(msg_types)=='string') msg_types = [msg_types];
         for(var i=0; i<msg_types.length; i++){
-            if(!(msg_types[i] in listeners)) listeners[msg_types[i]] = [];
-            listeners[msg_types[i]].push( cb );
+            var parts = msg_types[i].split('.'),
+                _mtype = parts[0],
+                _namespace = parts[1];
+            if(!(_mtype in listeners)) listeners[_mtype] = [];
+            listeners[_mtype].push({ 'fn': cb, 'ns': _namespace});
+        }
+    };
+
+    //this function allows you to UNbind any msg type as a listener (with a sepcified namespace or ALL events of this type(s) if no namespace is supplied)
+    var _unbind = function(msg_types){
+        if(typeof(_mtype)=='string') msg_types = [msg_types];
+        for(var i=0; i<msg_types.length; i++){
+            var parts = msg_types[i].split('.'),
+                _mtype = parts[0],
+                _namespace = parts[1];
+            if(_mtype in listeners){
+                if(!_namespace){
+                    //unbind ALL listeners on this message type
+                    delete listenres[_mtype];
+                }else{
+                    //find only messages bound on this namespace/type
+                    for(var j=msg_types[i].length; j>=0; j--){
+                        if(msg_types[i][j].ns == _namespace) msg_types[i].splice(j,1);
+                    }
+                }
+            }
+            listeners[_mtype].push({ 'fn': cb, 'ns': _namespace});
         }
     };
 
@@ -54,33 +80,40 @@ function message_relay( namespace, relay_level, debug ){
         }
     };
 
-    //send a message to the specified level
-    var _send_msg = function( msg_type, destination, data , cb ){
-        if( _level_order[destination] < _level_order[level] ){
-            _send_down( msg_type, destination, data, cb );
-        }else{
-            _send_up( msg_type, destination, data, cb );
+    //send a message to the specified level(s) - NOTE destinations can be a string or array of destination strings
+    function _send_msg( msg_type, destinations, data , cb ){
+        if(typeof(destinations)=='string') destinations = [destinations];
+        for(var i=0; i<destinations.length; i++) {
+            if( !_is_valid_level(destinations[i]) ){
+                _log("NOTICE - invalid level specified as destination ("+destinations[i]+")");
+                continue;
+            }
+            if (_level_order[destinations[i]] < _level_order[level]) {
+                _send_down(msg_type, destinations[i], data, cb);
+            } else {
+                _send_up(msg_type, destinations[i], data, cb);
+            }
         }
-    };
+    }
 
     //send a message DOWN the listening stack (exposed as <instance>.send_down)
-    var _send_down = function( msg_type, destination, data, cb ){
+    function _send_down( msg_type, destination, data, cb ){
         var msg = _get_msg( msg_type, destination, false, data );
         _log( "Send msg DOWN from "+level+" to "+destination+" : "+msg_type+" - "+JSON.stringify(data));
         _relay( msg, cb );
-    };
+    }
 
     //send a message UP the listening stack (exposed as <instance>.send_up)
-    var _send_up = function( msg_type, destination, data, cb ){
+    function _send_up( msg_type, destination, data, cb ){
         var msg = _get_msg( msg_type, destination, true, data );
         _log( "Send msg UP from "+level+" to "+destination+" : "+msg_type+" - "+ JSON.stringify(data));
         _relay( msg, cb );
-    };
+    }
 
     //This function is used by both send_up and send_down to relay a message the proper direction
-    var _relay = function( data, cb ){
+    function _relay( data, cb ){
 
-        if( level==_levels.extension && _levels[data['msg_destination']] < _levels.extension ){
+        if( (level==_levels.extension) && _levels[data['msg_destination']] < _levels.extension ){
             //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
             chrome.tabs.query({}, function(tabs){
                 for (var i = 0; i < tabs.length; i++) {
@@ -110,12 +143,12 @@ function message_relay( namespace, relay_level, debug ){
                 window.postMessage(data, "*");
             }
         }
-    };
+    }
 
 
     //This function is called for every incoming message to this level and determines if the messsage is intended for this level
     //(and calls needed listeners) or continues relaying it upwards/downwards
-    var _incoming_message = function( msg, responder ){
+    function _incoming_message( msg, responder ){
         var msg_data =          msg.msg_data,
             msg_from =          msg.msg_from,
             msg_up =            msg.msg_up,
@@ -135,35 +168,40 @@ function message_relay( namespace, relay_level, debug ){
             _call_bound_listeners( msg_type, msg_data, responder );
         }else{
             //message still bubbling up/down.. just relay if needed
-            var _msg_from = msg_from;
             msg.msg_from = level;
             if(msg_up && _level_order[level] > _level_order[msg_from]){
+                _relay( msg );
                 _log( "Msg ("+msg_type+") relaying UP from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
-                _relay( msg );
             }else if(!msg_up && _level_order[level] < _level_order[msg_from]){
-                _log( "Msg ("+msg_type+") relaying DOWN "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
                 _relay( msg );
+                _log( "Msg ("+msg_type+") relaying DOWN "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
             }
         }
-    };
+    }
 
     //call all bound listeners for this message type at this level
-    var _call_bound_listeners = function( msg_type, msg_data, responder ){
+    function _call_bound_listeners( msg_type, msg_data, responder ){
         if(!(msg_type in listeners)) return;
         for(var i=0; i < listeners[msg_type].length; i++ ){
             if(typeof(responder)=='function'){
                 //includes responder function (extension only)
-                listeners[msg_type][i]( msg_data, responder );
+                listeners[msg_type][i].fn( msg_data, responder );
             }else{
-                listeners[msg_type][i]( msg_data );
+                listeners[msg_type][i].fn( msg_data );
             }
         }
-    };
+    }
 
-    var _log = function( msg ){
+    //check if a level is an actual context level
+    function _is_valid_level(check_l){
+        return (check_l in _levels);
+    }
+
+    //log function (that fires only if debug is enabled)
+    function _log( msg ){
         if(!_debug) return;
         console.log("::MSG-RELAY ("+level+"):: "+msg);
-    };
+    }
 
     if( [_levels.page,_levels.content,_levels.iframe,_levels.iframe_shim].indexOf(level) != -1  ){
         //this relay is in the page, content, or iframe level so setup listener for postmessage calls
@@ -188,6 +226,7 @@ function message_relay( namespace, relay_level, debug ){
     return {
         levels: _levels,
         on: _bind,
+        off: _unbind,
         send: _send_msg
     };
 }
