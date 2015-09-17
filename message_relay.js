@@ -156,7 +156,9 @@ function message_relay( namespace, relay_level, debug ){
             msg_type =          msg.msg_type,
             msg_id =            msg.msg_id;
 
-        if(msg_from==level || received_messages.indexOf(msg_id) != -1){
+        var _msg_reception_id = msg_id+':'+msg_destination;
+
+        if(msg_from==level || received_messages.indexOf(_msg_reception_id) != -1){
             //message already received - need this because page scripts and content scripts listen at same postMessage level and we don't want to relay it twice if it's a pass-through
             return;
         }
@@ -164,7 +166,7 @@ function message_relay( namespace, relay_level, debug ){
         if( msg_destination == level ){
             //message intended for this level, call any bound listeners
             _log( "Msg ("+msg_type+") received from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
-            received_messages.push(msg_id);
+            received_messages.push(_msg_reception_id);
             _call_bound_listeners( msg_type, msg_data, responder );
         }else{
             //message still bubbling up/down.. just relay if needed
