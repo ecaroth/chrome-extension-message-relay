@@ -77,7 +77,7 @@ This function allows a relay to send a message to a specific destination level, 
 
 `msg_type` (string) name of the message you wish to send or (array) or multiple message types
 
-`destination` (string) the destination level (one of the enum levels listed below)
+`destination` (string) the destination level (one of the enum levels listed below) or a level/tab.id combo (see '*specific tab channels*' below)
 
 `data` (object) data to send along with the message
 
@@ -101,3 +101,21 @@ This is simply an exposed object that allows you to explicitly reference a conte
 * extension
 
 **NOTE** - Iframe shim is an intermediary iframe intended for use for extensions that cannot load iframes on a page due to CSP (content security policy) preventing it on page, regardless of manifest settings. This allows you to load an iframe from chrome-extension:// that just loads another iframe within to your intended SRC. The iframe_shim level lets messages flow properly from the child iframe up to the content scripts (and further up the context)
+
+###Specific Tab Channels
+
+In many cases you may be sending a message down to a content, page, iframe, or iframe_shim context from the extension background. The message relay will, by default, broadcast the message across all tabs so any registered listeners in your namespace can receive/forward the message. Sometimes this is desired, but not always. To broadcast a message from the extension context down to a specific tab channel, you can use a special exposed function on the message relay when specifying the destination level to indicate the tab ID you wish to broadcast to. This function is detailed below:
+####.levelViaTabId( level, tab.id )
+
+An example of using this from the extension context, to send the message only through the currently active tab channel is:
+```javascript
+var relay = message_relay( "myextension.relay_namespace", "extension" );
+
+chrome.tabs.getSelected(function(tab){
+	relay.send(
+	    "foo.bar",
+	    relay.levelViaTabId( relay.levels.page, tab.id),
+	    { my_data: "test" }
+	);
+});
+```

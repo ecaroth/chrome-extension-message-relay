@@ -63,32 +63,44 @@ function message_relay( namespace, relay_level, debug ){
     //get the base msg object used for relaying
     var _get_msg = function( type, dest, up, data ){
         //type = string, message type (specified when calling send_up or send_down)
-        //dest = detination level (one of _levels)
+        //dest = detination level (one of _levels) - NOTE: can specific a specific tab.id to use only by specifying a @tab.id
         //up = boolean, is this message going upwards (else going down)
         //data = javascript variable to pass with message
         if(!data) data = {};
         var msg_id = ('msg_id' in data) ? data['msg_id'] : dest+":"+type+":"+(new Date().getTime());
         data['msg_id'] = msg_id;
-        return {
+        var msg_obj = {
             msg_type:           type,
             msg_from:           level,
             msg_destination:    dest,
             msg_up:             up,
             msg_name:           msg_namespace,
             msg_data:           data,
-            msg_id:             msg_id
+            msg_id:             msg_id,
+            msg_tab_id:         null
         }
+        var dest_data = _parse_destination(dest),
+            _level = dest_data[0],
+            _tab_id = dest_data[1];
+        if( _tab_id ){
+            var parts = dest.split("@");
+            msg_obj.msg_destination = _level;
+            msg_obj.msg_tab_id = _tab_id;
+        }
+        return msg_obj;
     };
 
     //send a message to the specified level(s) - NOTE destinations can be a string or array of destination strings
     function _send_msg( msg_type, destinations, data , cb ){
         if(typeof(destinations)=='string') destinations = [destinations];
         for(var i=0; i<destinations.length; i++) {
-            if( !_is_valid_level(destinations[i]) ){
+            if( !_is_valid_destination(destinations[i]) ){
                 _log("NOTICE - invalid level specified as destination ("+destinations[i]+")");
                 continue;
             }
-            if (_level_order[destinations[i]] < _level_order[level]) {
+            var dest_data = _parse_destination(destinations[i]),
+                _dest_level = dest_data[0];
+            if (_level_order[_dest_level] < _level_order[level]) {
                 _send_down(msg_type, destinations[i], data, cb);
             } else {
                 _send_up(msg_type, destinations[i], data, cb);
@@ -112,11 +124,12 @@ function message_relay( namespace, relay_level, debug ){
 
     //This function is used by both send_up and send_down to relay a message the proper direction
     function _relay( data, cb ){
-
         if( (level==_levels.extension) && _levels[data['msg_destination']] < _levels.extension ){
             //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
+            //UNLESS a specific tab id is included on the request destination
             chrome.tabs.query({}, function(tabs){
                 for (var i = 0; i < tabs.length; i++) {
+                    if(data.msg_tab_id && tabs[i].id != data.msg_tab_id) continue;
                     chrome.tabs.sendMessage(tabs[i].id, data, function(response){
                         if(cb) cb(response);
                     });
@@ -154,7 +167,8 @@ function message_relay( namespace, relay_level, debug ){
             msg_up =            msg.msg_up,
             msg_destination =   msg.msg_destination,
             msg_type =          msg.msg_type,
-            msg_id =            msg.msg_id;
+            msg_id =            msg.msg_id,
+            msg_tab_id =        msg.msg_tab_id;
 
         var _msg_reception_id = msg_id+':'+msg_destination;
 
@@ -194,9 +208,23 @@ function message_relay( namespace, relay_level, debug ){
         }
     }
 
-    //check if a level is an actual context level
-    function _is_valid_level(check_l){
-        return (check_l in _levels);
+    //check if a level is an actual context level (or level w/ tab.id)
+    function _is_valid_destination(dest){
+        if(!dest) return false;
+        var dest_data = _parse_destination(dest),
+            _level = dest_data[0],
+            _tab_id = dest_data[1];
+        return (_level in _levels);
+    }
+
+    //function to parse a destination address and return level (and optionally set tab.id)
+    function _parse_destination(dest){
+        return dest.split("@");
+    }
+
+    //function to direct a message through channels via specific tab.id
+    function _level_via_tab_id( _level, _tab_id ){
+        return _level+"@"+_tab_id;
     }
 
     //log function (that fires only if debug is enabled)
@@ -229,6 +257,7 @@ function message_relay( namespace, relay_level, debug ){
         levels: _levels,
         on: _bind,
         off: _unbind,
-        send: _send_msg
+        send: _send_msg,
+        levelViaTabId: _level_via_tab_id
     };
 }
