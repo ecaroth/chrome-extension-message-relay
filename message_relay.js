@@ -23,6 +23,7 @@ function message_relay( namespace, relay_level, debug ){
         received_messages = [],                 //digest of all received messages (in debug mode only)
         valid_windows = [],                     //list of valid windows that can access message relay (parent windows, iframes in pages, etc)
         msg_namespace = namespace,              //the namespace for your msg relay - used to capture and identify relay msgs from other postMsg traffic "docalytics.message";   //
+        last_sender_info = null,                //info about the last message sender
         listeners = {};                         //bound listeners for the relay (at this level)
 
     //this function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
@@ -161,7 +162,7 @@ function message_relay( namespace, relay_level, debug ){
 
     //This function is called for every incoming message to this level and determines if the messsage is intended for this level
     //(and calls needed listeners) or continues relaying it upwards/downwards
-    function _incoming_message( msg, responder ){
+    function _incoming_message( msg, responder, sender ){
         var msg_data =          msg.msg_data,
             msg_from =          msg.msg_from,
             msg_up =            msg.msg_up,
@@ -170,6 +171,7 @@ function message_relay( namespace, relay_level, debug ){
             msg_id =            msg.msg_id,
             msg_tab_id =        msg.msg_tab_id;
 
+        if(sender) last_sender_info = sender;
         var _msg_reception_id = msg_id+':'+msg_destination;
 
         if(msg_from==level || received_messages.indexOf(_msg_reception_id) != -1){
@@ -238,7 +240,7 @@ function message_relay( namespace, relay_level, debug ){
         window.addEventListener('message', function(event){
             var evt_data = event.data;
             if(typeof(evt_data)=='object' && 'msg_name' in evt_data && (evt_data.msg_name == msg_namespace)){
-                _incoming_message( evt_data, null );
+                _incoming_message( evt_data );
             }
         });
     }
@@ -247,7 +249,7 @@ function message_relay( namespace, relay_level, debug ){
         try{
             chrome.runtime.onMessage.addListener(
                 function(msg, sender, sendResponse) {
-                    _incoming_message( msg, sendResponse );
+                    _incoming_message( msg, sendResponse, sender );
                 }
             );
         }catch(e){}
@@ -258,6 +260,7 @@ function message_relay( namespace, relay_level, debug ){
         on: _bind,
         off: _unbind,
         send: _send_msg,
-        levelViaTabId: _level_via_tab_id
+        levelViaTabId: _level_via_tab_id,
+        getLastMsgSenderInfo: function(){ return last_sender_info; }
     };
 }
