@@ -205,18 +205,14 @@ function message_relay( namespace, relay_level, debug ){
     }
 
     //call all bound listeners for this message type at this level
-    function _call_bound_listeners( msg_type, msg_data, sender, responder ){
+    function _call_bound_listeners( msg_type, msg_data, responder ){
         if(!(msg_type in listeners)) return;
         for(var i=0; i < listeners[msg_type].length; i++ ){
             if(typeof(responder)=='function'){
                 //includes responder function (extension only)
                 listeners[msg_type][i].fn( msg_data, responder );
             }else{
-                if(listeners[msg_type][i].fn.length==2){
-                    listeners[msg_type][i].fn( msg_data, sender );
-                }else{
-                    listeners[msg_type][i].fn( msg_data );
-                }
+                listeners[msg_type][i].fn( msg_data );
             }
         }
     }

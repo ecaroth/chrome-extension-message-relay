@@ -53,7 +53,7 @@ Also - relays only communicate with others that were created on the same namespa
 
 You can create a new message relay at the desired level by instantiating it, passing in the namespace, current level, and if you want to run the extesion in debug mode (which provides verbose logging of incoming/relaying messages)
 
-```javascript       
+```javascript		
 var relay = message_relay( 
     my_relay_namespace, //string
     current_level, //string enum(page|iframe|content|extension)
@@ -70,7 +70,7 @@ This function gives the ability to listen for incoming messages to this context 
 
 `msg_type` (string) name of the message you want to listen for or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else left in the global namspeace
 
-`cb` = callback function when message is received, takes 1 argument which is incoming message data and (optional) second message which is the tab that communication is coming through (only available for messages that originate from or pass through content level)
+`cb` = callback function when message is received, takes 1 argument which is incoming message data
 
 ####.send( msg_type, destination, data, cb )
 This function allows a relay to send a message to a specific destination level, which will be intercepted by any listeners at that context level.
@@ -90,9 +90,6 @@ This function allows you to unbind msg type listeners from this relay, or all me
 
 `msg_type` (string) name of the message you want to unbind or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else if no namespace is supplied ALL messages of that type(s) will be unbound
 
-####.getLastMsgSenderInfo()
-
-This function returns the tab that last communicated through this message relay. 
 
 ####.levels
 This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the `.send()` function above:
@@ -115,10 +112,22 @@ An example of using this from the extension context, to send the message only th
 var relay = message_relay( "myextension.relay_namespace", "extension" );
 
 chrome.tabs.getSelected(function(tab){
-    relay.send(
-        "foo.bar",
-        relay.levelViaTabId( relay.levels.page, tab.id),
-        { my_data: "test" }
-    );
+	relay.send(
+	    "foo.bar",
+	    relay.levelViaTabId( relay.levels.page, tab.id),
+	    { my_data: "test" }
+	);
+});
+```
+
+A useful utility function exists to help you get the tab information for the last received message (often useful if you want to leverage the levelViaTabId function above to communicate directly back to that tab). The function is:
+####.getLastMsgSenderInfo()
+
+This function returns the tab that last communicated with the extension. So an example of responding directly back would be:
+
+```javascript
+relay.on( 'msg_from_content', function(data){
+    var _tab = relay.getLastMsgSenderInfo();
+    relay.send( 'response', relay.levelViaTabId( relay.levels.content, _tab.id), {foo:'bar'} );
 });
 ```
