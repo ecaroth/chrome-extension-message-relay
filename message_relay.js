@@ -24,6 +24,7 @@ function message_relay( namespace, relay_level, debug ){
         valid_windows = [],                     //list of valid windows that can access message relay (parent windows, iframes in pages, etc)
         msg_namespace = namespace,              //the namespace for your msg relay - used to capture and identify relay msgs from other postMsg traffic "docalytics.message";   //
         last_sender_info = null,                //info about the last message sender
+        last_msg_type = null,                   //the last received message type
         listeners = {};                         //bound listeners for the relay (at this level)
 
     //this function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
@@ -49,7 +50,7 @@ function message_relay( namespace, relay_level, debug ){
             if(_mtype in listeners){
                 if(!_namespace){
                     //unbind ALL listeners on this message type
-                    delete listenres[_mtype];
+                    delete listeners[_mtype];
                 }else{
                     //find only messages bound on this namespace/type
                     for(var j=msg_types[i].length; j>=0; j--){
@@ -59,6 +60,11 @@ function message_relay( namespace, relay_level, debug ){
             }
             listeners[_mtype].push({ 'fn': cb, 'ns': _namespace});
         }
+    };
+
+    //this function unbinds ALL listeners
+    var _unbind_all = function(){
+        listeners = {};
     };
 
     //get the base msg object used for relaying
@@ -172,6 +178,7 @@ function message_relay( namespace, relay_level, debug ){
             msg_tab_id =        msg.msg_tab_id;
 
         if(sender) last_sender_info = sender;
+        last_msg_type = msg_type;
         var _msg_reception_id = msg_id+':'+msg_destination;
 
         if(msg_from==level || received_messages.indexOf(_msg_reception_id) != -1){
@@ -183,7 +190,7 @@ function message_relay( namespace, relay_level, debug ){
             //message intended for this level, call any bound listeners
             _log( "Msg ("+msg_type+") received from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
             received_messages.push(_msg_reception_id);
-            _call_bound_listeners( msg_type, msg_data, responder );
+            _call_bound_listeners( msg_type, msg_data, sender, responder );
         }else{
             //message still bubbling up/down.. just relay if needed
             msg.msg_from = level;
@@ -198,14 +205,18 @@ function message_relay( namespace, relay_level, debug ){
     }
 
     //call all bound listeners for this message type at this level
-    function _call_bound_listeners( msg_type, msg_data, responder ){
+    function _call_bound_listeners( msg_type, msg_data, sender, responder ){
         if(!(msg_type in listeners)) return;
         for(var i=0; i < listeners[msg_type].length; i++ ){
             if(typeof(responder)=='function'){
                 //includes responder function (extension only)
                 listeners[msg_type][i].fn( msg_data, responder );
             }else{
-                listeners[msg_type][i].fn( msg_data );
+                if(listeners[msg_type][i].fn.length==2){
+                    listeners[msg_type][i].fn( msg_data, sender );
+                }else{
+                    listeners[msg_type][i].fn( msg_data );
+                }
             }
         }
     }
@@ -259,8 +270,10 @@ function message_relay( namespace, relay_level, debug ){
         levels: _levels,
         on: _bind,
         off: _unbind,
+        offAll: _unbind_all,
         send: _send_msg,
         levelViaTabId: _level_via_tab_id,
-        getLastMsgSenderInfo: function(){ return last_sender_info; }
+        getLastMsgSenderInfo: function(){ return last_sender_info; },
+        getLastMsgType: function(){ return last_msg_type; }
     };
 }
