@@ -17,7 +17,7 @@ To start using the message relay, simply include the file message_relay.js at al
 Just create a new instance of the relay at the level you are in, passing in a namespace for your relays and the current level. For example if I had scripts injected into the current page's context and the message relay was also injected, I could set it up with:
 
 ```javascript
-var my_page_msg_relay = message_relay( "myextension.namespace", "page" );
+var my_page_msg_relay = chrome_extension_message_relay( "myextension.namespace", "page" );
 ```
 
 Then, within that same page I can listen for any specific communications sent to that level by using the 'on' function:
@@ -33,7 +33,7 @@ my_page_msg_relay.on( "foo.bar" , my_callback_function )
 Now, at any other context level of my extension I can communicate with this page script by using a message relay on that level. For example, if I setup a messgae relay in the content script level then another one in the background page, I can communicate down to the page script from the background page like so:
 
 ```javascript
-var background_pg_msg_relay = message_relay( "myextension.relay_namespace", "extension" );
+var background_pg_msg_relay = chrome_extension_message_relay( "myextension.relay_namespace", "extension" );
 
 background_pg_msg_relay.send(
     "foo.bar",
@@ -54,7 +54,7 @@ Also - relays only communicate with others that were created on the same namespa
 You can create a new message relay at the desired level by instantiating it, passing in the namespace, current level, and if you want to run the extesion in debug mode (which provides verbose logging of incoming/relaying messages)
 
 ```javascript		
-var relay = message_relay( 
+var relay = chrome_extension_message_relay(
     my_relay_namespace, //string
     current_level, //string enum(page|iframe|content|extension)
     debug_mode //string 
@@ -109,7 +109,7 @@ In many cases you may be sending a message down to a content, page, iframe, or i
 
 An example of using this from the extension context, to send the message only through the currently active tab channel is:
 ```javascript
-var relay = message_relay( "myextension.relay_namespace", "extension" );
+var relay = chrome_extension_message_relay( "myextension.relay_namespace", "extension" );
 
 chrome.tabs.getSelected(function(tab){
 	relay.send(

@@ -1,6 +1,6 @@
 "use strict";
 
-function message_relay( namespace, relay_level, debug ){
+function chrome_extension_message_relay( namespace, relay_level, debug ){
 
     var _debug = debug || false,
 
