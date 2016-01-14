@@ -210,9 +210,9 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
         for(var i=0; i < listeners[msg_type].length; i++ ){
             if(typeof(responder)=='function'){
                 //includes responder function (extension only)
-                listeners[msg_type][i].fn( msg_data, responder );
+                listeners[msg_type][i].fn.call(listeners[msg_type][i],  msg_data, responder );
             }else{
-                listeners[msg_type][i].fn( msg_data );
+                listeners[msg_type][i].fn.call( listeners[msg_type][i], msg_data );
             }
         }
     }
