@@ -20,7 +20,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
         },
 
         level = relay_level,                    //relay level (one of 'content','page','iframe','extension') - the level that THIS relay is listening at
-        received_messages = [],                 //digest of all received messages (in debug mode only)
+        received_messages = [],                 //digest of all received messages
         valid_windows = [],                     //list of valid windows that can access message relay (parent windows, iframes in pages, etc)
         msg_namespace = namespace,              //the namespace for your msg relay - used to capture and identify relay msgs from other postMsg traffic "docalytics.message";   //
         last_sender_info = null,                //info about the last message sender
@@ -30,7 +30,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
     //this function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
     //you can also namespace msg types with msg_type.namespace, or specify no namespace
     function _bind( msg_types, cb ){
-        if(typeof(msg_types)=='string') msg_types = [msg_types];
+        if( typeof msg_types === 'string' ) msg_types = [msg_types];
         for(var i=0; i<msg_types.length; i++){
             var parts = msg_types[i].split('.'),
                 _mtype = parts[0],
@@ -42,7 +42,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
 
     //this function allows you to UNbind any msg type as a listener (with a sepcified namespace or ALL events of this type(s) if no namespace is supplied)
     var _unbind = function(msg_types){
-        if(typeof(_mtype)=='string') msg_types = [msg_types];
+        if( typeof _mtype === 'string' ) msg_types = [msg_types];
         for(var i=0; i<msg_types.length; i++){
             var parts = msg_types[i].split('.'),
                 _mtype = parts[0],
@@ -99,7 +99,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
 
     //send a message to the specified level(s) - NOTE destinations can be a string or array of destination strings
     function _send_msg( msg_type, destinations, data , cb ){
-        if(typeof(destinations)=='string') destinations = [destinations];
+        if( typeof destinations === 'string' ) destinations = [destinations];
         for(var i=0; i<destinations.length; i++) {
             if( !_is_valid_destination(destinations[i]) ){
                 _log("NOTICE - invalid level specified as destination ("+destinations[i]+")");
@@ -131,7 +131,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
 
     //This function is used by both send_up and send_down to relay a message the proper direction
     function _relay( data, cb ){
-        if( (level==_levels.extension) && _levels[data['msg_destination']] < _levels.extension ){
+        if( (level==_levels.extension) && _level_order[data['msg_destination']] < _level_order.extension ){
             //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
             //UNLESS a specific tab id is included on the request destination
             chrome.tabs.query({}, function(tabs){
@@ -145,7 +145,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
         }else if( (level==_levels.content && data['msg_destination']==_levels.extension) || level==_levels.extension ){
             //going form content script to extension.. use chrome runtime sendmessage
             chrome.runtime.sendMessage( data, function(response) {
-                if(cb && typeof(cb)=='function') cb(response);
+                if(cb && typeof cb === 'function') cb(response);
             });
         }else{
             //no interaction with extension background, broadcast w/ postmessage
@@ -169,6 +169,9 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
     //This function is called for every incoming message to this level and determines if the messsage is intended for this level
     //(and calls needed listeners) or continues relaying it upwards/downwards
     function _incoming_message( msg, responder, sender ){
+        //searialize/unserialize msg object so we don't end up with closure memory leaks
+        var msg = JSON.parse( JSON.stringify(msg) );
+
         var msg_data =          msg.msg_data,
             msg_from =          msg.msg_from,
             msg_up =            msg.msg_up,
@@ -208,7 +211,7 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
     function _call_bound_listeners( msg_type, msg_data, responder ){
         if(!(msg_type in listeners)) return;
         for(var i=0; i < listeners[msg_type].length; i++ ){
-            if(typeof(responder)=='function'){
+            if(typeof responder === 'function'){
                 //includes responder function (extension only)
                 listeners[msg_type][i].fn.call(listeners[msg_type][i],  msg_data, responder );
             }else{
@@ -245,9 +248,8 @@ function chrome_extension_message_relay( namespace, relay_level, debug ){
     if( [_levels.page,_levels.content,_levels.iframe,_levels.iframe_shim].indexOf(level) != -1  ){
         //this relay is in the page, content, or iframe level so setup listener for postmessage calls
         window.addEventListener('message', function(event){
-            var evt_data = event.data;
-            if(typeof(evt_data)=='object' && 'msg_name' in evt_data && (evt_data.msg_name == msg_namespace)){
-                _incoming_message( evt_data );
+            if(typeof event.data === 'object' && 'msg_name' in event.data && (event.data.msg_name == msg_namespace)){
+                _incoming_message( event.data );
             }
         });
     }
