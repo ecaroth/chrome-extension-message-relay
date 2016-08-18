@@ -8,10 +8,10 @@ A message relay class to make development of Chrome Extensions faster and easier
 Usage
 ------
 
-To start using the message relay, simply include the file message_relay.js at all levels of your extension you need communication. The message relay can be used:
+To start using the message relay, simply include the production version of the file at `/dist/message_relay.prod.js` at  all levels of your extension you need communication to. The message relay can be used:
 
 * In iframes on the page
-* In iframes shims on the page (used to shim an iframe's contents with another iframe served from the chrome extension URL to bypass CSP restrictions in extensions that work in Gmail)
+* In iframes shims on the page (used to shim an iframe's contents with another iframe served from the chrome extension URL to bypass CSP restrictions in extensions that work in Gmail - see details further down in readme)
 * On the page itself (injected into the page's context)
 * In your content scripts
 * In the extension's context (background pages/scripts)
