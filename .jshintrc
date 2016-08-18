@@ -1,0 +1,27 @@
+{
+  "node": true,
+  "browser": true,
+  "mocha": true,
+  "esnext": true,
+  "module": true,
+  "bitwise": true,
+  "camelcase": false,
+  "curly": false,
+  "eqeqeq": true,
+  "immed": true,
+  "laxcomma": true,
+  "indent": 2,
+  "latedef": "nofunc",
+  "newcap": true,
+  "noarg": true,
+  "quotmark": false,
+  "undef": true,
+  "unused": true,
+  "strict": true,
+  "validthis": true,
+  "loopfunc": true,
+  "globals" : {
+    "chrome": true,
+    "crypto": true
+  }
+}

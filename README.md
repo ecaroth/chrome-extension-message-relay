@@ -1,11 +1,13 @@
-##Chrome Extension Message Relay##
+#Chrome Extension Message Relay
 
 
 A message relay class to make development of Chrome Extensions faster and easier by exposing a dead-simple communication interface between context levels (iframe, page, content scripts, background scripts). The script leverages a combination of [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage) and [window.postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window.postMessage) to facilitate this communication.
 
-*Authored by* [Evan Carothers](https://github.com/ecaroth) @ [Docalytics](https://github.com/orgs/Docalytics/dashboard)
+*Authored by* [Evan Carothers](https://github.com/ecaroth)
 
-###Usage
+Usage
+------
+
 To start using the message relay, simply include the file message_relay.js at all levels of your extension you need communication. The message relay can be used:
 
 * In iframes on the page
@@ -42,14 +44,16 @@ background_pg_msg_relay.send(
 );
 ```
     
-###Notes
+Notes
+------
 
 In some cases for the relay to work properly, you must have created relays that are listening each level of the communication stack. For example, if you have a relay on the web page and one in the backgroud page, they will not be able to communicate because there meeds to also be a listener active on the content script level for that page.
 
 Also - relays only communicate with others that were created on the same namespace, however you can create multiple relays with different namespaces for different purposes to suit your needs, though that's a very odd use case during extension development
 
 
-###API
+API
+------
 
 You can create a new message relay at the desired level by instantiating it, passing in the namespace, current level, and if you want to run the extesion in debug mode (which provides verbose logging of incoming/relaying messages)
 
@@ -90,6 +94,10 @@ This function allows you to unbind msg type listeners from this relay, or all me
 
 `msg_type` (string) name of the message you want to unbind or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else if no namespace is supplied ALL messages of that type(s) will be unbound
 
+####.offAll( namespace )
+This function allows you to unbind msg type listeners from the relay, either to unbind ALL listeners, or all of a specific namespace
+
+`namespace` (string, optional) the namespace for which you want to unbind listeners
 
 ####.levels
 This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the `.send()` function above:
@@ -101,6 +109,13 @@ This is simply an exposed object that allows you to explicitly reference a conte
 * extension
 
 **NOTE** - Iframe shim is an intermediary iframe intended for use for extensions that cannot load iframes on a page due to CSP (content security policy) preventing it on page, regardless of manifest settings. This allows you to load an iframe from chrome-extension:// that just loads another iframe within to your intended SRC. The iframe_shim level lets messages flow properly from the child iframe up to the content scripts (and further up the context)
+
+####.mockSend( msg_type, data )
+This function allows you to send a mock event to the relay as if it had received an incoming event from a different level. This is useful for building tests for applications that leverage the message relay and depend on it's functionality. 
+
+`msg_type` (string) name of the message you wish to call bound listeners for
+
+`data` (object, optional) data to send along with the message
 
 ###Specific Tab Channels
 
