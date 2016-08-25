@@ -41,7 +41,7 @@
         
         // =============== START OF TEST-ONLY VARIABLE DEFS ====================
 
-        var test_relay_fn = null;  //relay function to send events to when level=test (set in returned test.setRelayFn)     /*REM*/ 
+        var test_response = null;  //Response function used to validate tests in a few circumstances        /*REM*/ 
             
         // =============== END OF TEST-ONLY VARIABLE DEFS ====================
 
@@ -169,7 +169,7 @@
                 //UNLESS a specific tab id is included on the request destination
                 
                 if(level === _levels.test){                                                             /*REM*/
-                    if(typeof test_relay_fn === 'function') test_relay_fn("extension_down", data, cb);  /*REM*/
+                    if(typeof test_response === 'function') test_response("extension_down", data, cb);  /*REM*/
                 }else{                                                                                  /*REM*/
                     chrome.tabs.query({}, function(tabs){
                         for (var i = 0; i < tabs.length; i++) {
@@ -184,7 +184,7 @@
                 //going UP form content script to extension.. use chrome runtime sendmessage
                         
                 if(level === _levels.test){                                                             /*REM*/
-                    if(typeof test_relay_fn === 'function') test_relay_fn("content_up", data, cb);      /*REM*/
+                    if(typeof test_response === 'function') test_response("content_up", data, cb);      /*REM*/
                 }else{                                                                                  /*REM*/
                     chrome.runtime.sendMessage( data, function(response) {
                         if(cb && typeof cb === 'function') cb(response);
@@ -194,7 +194,7 @@
                 //no interaction with extension background, broadcast UP w/ postmessage so content/page can receive
                 if( this_level === _levels.iframe || this_level === _levels.iframe_shim ) { 
                     if(level === _levels.test){                                                         /*REM*/
-                        if(typeof test_relay_fn === 'function') test_relay_fn("iframe_up", data, cb);   /*REM*/
+                        if(typeof test_response === 'function') test_response("iframe_up", data, cb);   /*REM*/
                     }else{                                                                              /*REM*/
                         window.parent.postMessage(data, "*");
                     }                                                                                   /*REM*/
@@ -203,7 +203,7 @@
                     //TODO: add support for targetting a specific iframe domain or DOM elem?
                     
                     if(level === _levels.test){                                                         /*REM*/
-                        if(typeof test_relay_fn === 'function') test_relay_fn("iframe_down", data, cb); /*REM*/
+                        if(typeof test_response === 'function') test_response("iframe_down", data, cb); /*REM*/
                     }else{                                                                              /*REM*/
                         var iframes = document.getElementsByTagName('iframe');
                         for(var i=0; i<iframes.length; i++){
@@ -215,8 +215,8 @@
                 }else{
                     //communication between content and page directly (UP or DOWN) or from content to iframe_shim
                     if(level === _levels.test){                                                         /*REM*/
-                        if(typeof test_relay_fn === 'function'){                                        /*REM*/
-                            test_relay_fn("page_content_"+(data.msg_up ? 'up' : 'down'), data, cb);     /*REM*/
+                        if(typeof test_response === 'function'){                                        /*REM*/
+                            test_response("page_content_"+(data.msg_up ? 'up' : 'down'), data, cb);     /*REM*/
                         }                                                                               /*REM*/
                     }else{                                                                              /*REM*/
                         window.postMessage(data, "*");
@@ -258,18 +258,30 @@
                 //message intended for this level, call any bound listeners
                 _log( "Msg ("+msg_type+") received from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
                 received_messages[_msg_reception_id] = 0;
-                _call_bound_listeners( msg_type, msg_data, sender, responder );
+
+                if(level === _levels.test && test_response === 'function'){                             /*REM*/
+                    test_response("call_listener", msg);                                                /*REM*/
+                }else{                                                                                  /*REM*/
+                    _call_bound_listeners( msg_type, msg_data, sender, responder );
+                }                                                                                       /*REM*/
             }else{
                 //message still bubbling up/down.. just relay if needed
                 msg.msg_from = level;
-                if(msg_up && _level_order[level] > _level_order[msg_from]){
-                    _relay( msg );
-                    _log( "Msg ("+msg_type+") relaying UP from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
-                }else if(!msg_up && _level_order[level] < _level_order[msg_from]){
-                    _relay( msg );
-                    _log( "Msg ("+msg_type+") relaying DOWN "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
-                }
+
+                if(level === _levels.test && typeof test_response === 'function'){                      /*REM*/
+                    test_response("bubble", msg);                                                       /*REM*/
+                }else{                                                                                  /*REM*/
+                    if(msg_up && _level_order[level] > _level_order[msg_from]){
+                        _relay( msg );
+                        _log( "Msg ("+msg_type+") relaying UP from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
+                    }else if(!msg_up && _level_order[level] < _level_order[msg_from]){
+                        _relay( msg );
+                        _log( "Msg ("+msg_type+") relaying DOWN "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
+                    }
+                }                                                                                       /*REM*/    
             }
+
+            return true;
         }
 
         //call all bound listeners for this message type at this level
@@ -297,7 +309,7 @@
             var parts = dest.split("@");
             return {
                 level:      parts[0],
-                tab_id:     parts[1] || null
+                tab_id:     parts.length > 0 ? parseInt(parts[1],10) : null
             };
         }
 
@@ -340,8 +352,6 @@
 
 
 
-
-
         // =============== START OF TEST-ONLY FUNCTIONALITY ====================
 
         
@@ -365,7 +375,7 @@
             clearTMO:       function(){ clearInterval(received_msg_clean_tmo); }, //clear currently running tmo         /*REM*/
             setTMOsecs:     function(v){ received_msg_clean_interval_secs = v; }, //set the tmo interval seconds        /*REM*/
             setRecMsg:      function(v){ received_messages = v; }, //set the received_messages msg_obj                  /*REM*/
-            setRelayFn:     function(fn){ _is_test(); test_relay_fn=fn; }, //set relay fn that is called for _relay     /*REM*/
+            setResponseFn:  function(fn){ _is_test(); test_response=fn; }, //set test fn that is called for responses   /*REM*/
             token:          function(token){                                                                            /*REM*/
                                 _is_test();                                                                             /*REM*/
                                 return eval(token);                                                                     /*REM*/ // jshint ignore:line

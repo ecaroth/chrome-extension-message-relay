@@ -1,7 +1,7 @@
 "use strict";
 
 var expect = require('expect.js'),
-	chrome_extension_message_relay = require('../../dev/message_relay.dev.js');
+	chrome_extension_message_relay = require('../dev/message_relay.dev.js');
 
 //This suite tests each individual internal function of the chrome extension message relay class
 //to ensure expeted functionality. NOTE this tests ALL internal functions, not just those exposed and
@@ -11,6 +11,7 @@ var expect = require('expect.js'),
 //accessible
 
 describe("Individual internal functions", function(){
+
 	var RELAY = chrome_extension_message_relay( "test", "test" );
 
 	function _get_listeners(){
@@ -33,7 +34,76 @@ describe("Individual internal functions", function(){
 		};
 	}
 
-	//TODO _call_bound_listeners
+	describe("_incoming_message", function(){
+		var _incoming_message = RELAY.test.token('_incoming_message');
+		var resp = null;
+
+		beforeEach(function(){
+			resp = null;
+		});
+
+		before(function(){
+			RELAY.test.setResponseFn(function( rtype, msg ){
+				resp = { rtype: rtype, msg: msg };
+			});
+		});
+
+		after(function(){
+			RELAY.test.setResponseFn( null );
+		});
+
+		it("message from each level to other levels bubbles", function(){
+			for(var level_a in RELAY.levels){
+				for(var level_b in RELAY.levels){
+					if(level_a !== level_b && level_a !== RELAY.levels.test && level_b !== RELAY.levels.test){
+						resp = null;
+						var msg = _msg_base( level_a, level_b );
+						expect( _incoming_message(msg, null, null) ).to.be.true;
+						expect( resp.rtype ).to.be( "bubble" );
+						expect( resp.msg.msg_from ).to.be( RELAY.levels.test );
+					}
+				}
+			}
+		});
+
+		it("message for this level calls bound listeners", function(){
+			var msg = _msg_base( RELAY.levels.page, RELAY.levels.test );
+			expect( _incoming_message(msg, null, null) ).to.be.true;
+		});
+
+		it("messages with same ID aren't processed twice", function(){
+			var msg = _msg_base( RELAY.levels.page, RELAY.levels.content);
+
+			expect( _incoming_message(msg, null, null) ).to.be.true;
+			expect( _incoming_message(msg, null, null) ).to.be.false;
+		});
+	});
+
+	describe("_call_bound_listeners", function(){
+		var _call_bound_listeners = RELAY.test.token('_call_bound_listeners');
+
+		it("bound listeners get called correctly with no responder", function(done){
+			var edata = {foo:"bar"};
+			function cb(data){
+				expect(data).to.eql(edata);
+				done();
+			}
+			_set_listeners({'baz': [{fn:cb, ns:null}]});
+			_call_bound_listeners( 'baz', edata );
+		});
+
+		it("bound listeners get called correctly with responder", function(done){
+			var edata = {foo:"bar"};
+			function eresp(){};
+			function cb(data, resp){
+				expect(data).to.eql(edata);
+				expect(resp).to.be(eresp);
+				done();
+			}
+			_set_listeners({'baz': [{fn:cb, ns:null}]});
+			_call_bound_listeners( 'baz', edata, eresp );
+		});
+	});
 
 	describe("_get_mtype_info", function(){
 		var _get_mtype_info = RELAY.test.token('_get_mtype_info');
@@ -89,12 +159,18 @@ describe("Individual internal functions", function(){
 
 	describe('_relay_from_to_level', function(){
 		var _relay_from_to_level = RELAY.test.token('_relay_from_to_level');
-
 		var last_relay = null;
-		RELAY.test.setRelayFn(function( relay_type, data ){
-			last_relay = {type: relay_type, data: data};
+
+		before(function(){
+			RELAY.test.setResponseFn(function( relay_type, data ){
+				last_relay = {type: relay_type, data: data};
+			});
 		});
-		
+
+		after(function(){
+			RELAY.test.setResponseFn(null);
+		});
+
 		it("message from extension to iframe gets relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.extension, RELAY.levels.iframe );
 			_relay_from_to_level( RELAY.levels.extension, msg, function(){} );
@@ -232,7 +308,7 @@ describe("Individual internal functions", function(){
 		it("tab ID is extrapolated from destination", function(){
 			var msg = _get_msg( "foobar", RELAY.levels.page+"@1234", true, {biz:"baz",msg_id:"foobar"} );
 			expect(msg.msg_destination).to.be(RELAY.levels.page);
-			expect(msg.msg_tab_id).to.be("1234");
+			expect(msg.msg_tab_id).to.be(1234);
 		});
 	});
 
@@ -401,7 +477,7 @@ describe("Individual internal functions", function(){
 		it("tab_id and level are parsed", function(){
 			var dest = _parse_destination("test@1234");
 			expect(dest.level).to.be("test");
-			expect(dest.tab_id).to.be("1234");
+			expect(dest.tab_id).to.be(1234);
 		});
 
 		it("level is parsed with no tab_id", function(){

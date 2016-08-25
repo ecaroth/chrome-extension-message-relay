@@ -1,12 +1,12 @@
 "use strict";
 
 var expect = require('expect.js'),
-	chrome_extension_message_relay = require('../../dev/message_relay.dev.js');
+	chrome_extension_message_relay = require('../dev/message_relay.dev.js');
 
 //This suite tests some of the internal logic of the chrome extension message relay
 
 describe("Internal logic", function(){
-
+	
 	var RELAY = chrome_extension_message_relay( "test.namespace", "test" );
 
 	describe("Mock message functionality", function(){

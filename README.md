@@ -76,28 +76,60 @@ This function gives the ability to listen for incoming messages to this context 
 
 `cb` = callback function when message is received, takes 1 argument which is incoming message data
 
+__example:__
+```javascript
+my_relay.on( "save.user_action", function(data){
+    console.log("incoming message", data);    
+});
+```
+
 ####.send( msg_type, destination, data, cb )
 This function allows a relay to send a message to a specific destination level, which will be intercepted by any listeners at that context level.
 
 `msg_type` (string) name of the message you wish to send or (array) or multiple message types
 
-`destination` (string) the destination level (one of the enum levels listed below) or a level/tab.id combo (see '*specific tab channels*' below)
+`destination` (string) the destination level (one of the enum levels listed below) or a level/tab.id combo (see _specific tab channels_ below)
 
 `data` (object) data to send along with the message
 
 `cb` (function) callback function that can be used by the listener to respond to the message directly. 
 
-**NOTE** *the responder callback functionality only works when sending communications between a content script and a background script, as it leverages [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage)*
+**NOTE** the responder callback functionality only works when sending communications between a content script and a background script, as it leverages [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage), and generally this functionality is not commonly needed.
+
+__example:__
+```javascript
+my_relay.send( "save", my_relay.levels.extension, {foo:"bar"} );
+```
 
 ####.off( msg_type )
 This function allows you to unbind msg type listeners from this relay, or all message types in a namespace for this relay.
 
 `msg_type` (string) name of the message you want to unbind or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else if no namespace is supplied ALL messages of that type(s) will be unbound
 
+**NOTE** this function gives more specific control for unbinding based on message type - if you want to do unbinding for specific namespaces or all messages, see `offAll()` below
+
+__examples:__
+```javascript
+//unbind listeners for message type 'reload' (regardless of namespace)
+my_relay.off( "reload" );
+
+//unbind listeners for message type 'save' in namespace 'user_action', and all listeners for message type 'notify'
+my_relay.off( ["save.user_action","notify"] );
+```
+
 ####.offAll( namespace )
 This function allows you to unbind msg type listeners from the relay, either to unbind ALL listeners, or all of a specific namespace
 
 `namespace` (string, optional) the namespace for which you want to unbind listeners
+
+__examples:__
+```javascript
+//unbind all listeners for namespace 'user_action' (regardless of message type they are bound for)
+my_relay.offAll( "user_action" );
+
+//unbind ALL listeners, regardless of namespace or message type
+my_relay.offAll();
+```
 
 ####.levels
 This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the `.send()` function above:
@@ -117,7 +149,14 @@ This function allows you to send a mock event to the relay as if it had received
 
 `data` (object, optional) data to send along with the message
 
-###Specific Tab Channels
+__example:__
+```javascript
+//sent a mock message for an previously bound message type in my test suite
+my_relay.mockSend( "save", {foo:"bar"} );
+```
+
+Specific Tab Channels
+------
 
 In many cases you may be sending a message down to a content, page, iframe, or iframe_shim context from the extension background. The message relay will, by default, broadcast the message across all tabs so any registered listeners in your namespace can receive/forward the message. Sometimes this is desired, but not always. To broadcast a message from the extension context down to a specific tab channel, you can use a special exposed function on the message relay when specifying the destination level to indicate the tab ID you wish to broadcast to. This function is detailed below:
 ####.levelViaTabId( level, tab.id )

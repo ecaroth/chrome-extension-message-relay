@@ -1,7 +1,7 @@
 "use strict";
 
 var expect = require('expect.js'),
-	chrome_extension_message_relay = require('../../dev/message_relay.notest.js');
+	chrome_extension_message_relay = require('../dev/message_relay.notest.js');
 
 //This suite is a simple sanity check to verify that prod built version of the script with 
 //test functionality removed, and minified, is still an actual working script and doesn't throw
