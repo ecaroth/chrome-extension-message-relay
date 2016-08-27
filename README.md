@@ -201,7 +201,7 @@ A full unit test suite exists to test/verify functionality of all internal funct
 
 To use this functionality locally you must first do an `npm install`.
 
-Development on the package takes place in _/dev/message_relay.dev.js_. There is functionality that is exposed purely for testing and should *not* be included with the packaged version. Lines to be removed for packaging are indicated with comment blocks * /\*REM\*/ *, and inline comments indicate the test functionality and how it's used.
+Development on the package takes place in _/dev/message_relay.dev.js_. There is functionality that is exposed purely for testing and should *not* be included with the packaged version. Lines to be removed for packaging are indicated with comment blocks _\*/REM\*/_, and inline comments indicate the test functionality and how it's used.
 
 If the test/dev version of the relay is included on a page and you try to create a relay with it for any level other than _test_, a `ChromeExtensionMessageRelayError` will be thrown on the page and the relay will not function
 
