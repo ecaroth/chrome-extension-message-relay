@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Chrome-extension-message-relay by ecaroth</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Chrome-extension-message-relay</h1>
+      <h2 class="project-tagline">A message relay class to allow easy communication between sandboxed extension context levels (iframe, page, content scripts, background scripts)</h2>
+      <a href="https://github.com/ecaroth/chrome-extension-message-relay" class="btn">View on GitHub</a>
+      <a href="https://github.com/ecaroth/chrome-extension-message-relay/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/ecaroth/chrome-extension-message-relay/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="chrome-extension-message-relay" class="anchor" href="#chrome-extension-message-relay" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Chrome Extension Message Relay</h1>
+
+<p>A message relay class to make development of Chrome Extensions faster and easier by exposing a dead-simple communication interface between context levels (iframe, page, content scripts, background scripts). The script leverages a combination of <a href="https://developer.chrome.com/extensions/runtime#method-sendMessage">chrome.runtime.sendMessage</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window.postMessage">window.postMessage</a> to facilitate this communication.</p>
+
+<p><em>Authored by</em> <a href="https://github.com/ecaroth">Evan Carothers</a></p>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>To start using the message relay, simply include the production version of the file at <code>/dist/message_relay.prod.js</code> at  all levels of your extension you need communication to. The message relay can be used:</p>
+
+<ul>
+<li>In iframes on the page</li>
+<li>In iframes shims on the page (used to shim an iframe's contents with another iframe served from the chrome extension URL to bypass CSP restrictions in extensions that work in Gmail - see details further down in readme)</li>
+<li>On the page itself (injected into the page's context)</li>
+<li>In your content scripts</li>
+<li>In the extension's context (background pages/scripts)</li>
+</ul>
+
+<p>Just create a new instance of the relay at the level you are in, passing in a namespace for your relays and the current level. For example if I had scripts injected into the current page's context and the message relay was also injected, I could set it up with:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> my_page_msg_relay <span class="pl-k">=</span> <span class="pl-en">chrome_extension_message_relay</span>( <span class="pl-s"><span class="pl-pds">"</span>myextension.namespace<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>page<span class="pl-pds">"</span></span> );</pre></div>
+
+<p>Then, within that same page I can listen for any specific communications sent to that level by using the 'on' function:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">function</span> <span class="pl-en">my_callback_function</span>( <span class="pl-smi">msg_data</span> ){
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(msg_data); <span class="pl-c">//will output any data sent with this messgae</span>
+};
+
+<span class="pl-smi">my_page_msg_relay</span>.<span class="pl-en">on</span>( <span class="pl-s"><span class="pl-pds">"</span>foo.bar<span class="pl-pds">"</span></span> , my_callback_function )</pre></div>
+
+<p>Now, at any other context level of my extension I can communicate with this page script by using a message relay on that level. For example, if I setup a messgae relay in the content script level then another one in the background page, I can communicate down to the page script from the background page like so:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> background_pg_msg_relay <span class="pl-k">=</span> <span class="pl-en">chrome_extension_message_relay</span>( <span class="pl-s"><span class="pl-pds">"</span>myextension.relay_namespace<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>extension<span class="pl-pds">"</span></span> );
+
+<span class="pl-smi">background_pg_msg_relay</span>.<span class="pl-c1">send</span>(
+    <span class="pl-s"><span class="pl-pds">"</span>foo.bar<span class="pl-pds">"</span></span>,
+    <span class="pl-smi">background_pg_msg_relay</span>.<span class="pl-smi">levels</span>.<span class="pl-smi">page</span>,
+    { my_data<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span> }
+);</pre></div>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>The package is available directly on github, or via package management (bower / npm):</p>
+
+<pre><code>bower install chrome-extension-message-relay --save
+</code></pre>
+
+<pre><code>npm install git+https://github.com/ecaroth/chrome-extension-message-relay --save
+</code></pre>
+
+<h2>
+<a id="notes" class="anchor" href="#notes" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Notes</h2>
+
+<p>In some cases for the relay to work properly, you must have created relays that are listening each level of the communication stack. For example, if you have a relay on the web page and one in the backgroud page, they will not be able to communicate because there meeds to also be a listener active on the content script level for that page.</p>
+
+<p>Also - relays only communicate with others that were created on the same namespace, however you can create multiple relays with different namespaces for different purposes to suit your needs, though that's a very odd use case during extension development</p>
+
+<h2>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>API</h2>
+
+<p>You can create a new message relay at the desired level by instantiating it, passing in the namespace, current level, and if you want to run the extesion in debug mode (which provides verbose logging of incoming/relaying messages)</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> relay <span class="pl-k">=</span> <span class="pl-en">chrome_extension_message_relay</span>(
+    my_relay_namespace, <span class="pl-c">//string</span>
+    current_level, <span class="pl-c">//string enum(page|content|extension|iframe|iframe_shim)</span>
+    debug_mode <span class="pl-c">//boolean, default false </span>
+);</pre></div>
+
+<p>Once created you have access to the following functions on the object:</p>
+
+<h3>
+<a id="on-msg_type-cb-" class="anchor" href="#on-msg_type-cb-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.on( msg_type, cb )</h3>
+
+<blockquote>
+<p>This function gives the ability to listen for incoming messages to this context level (from any other level) and execute a callback when the message is received. The bound listener executes each time the message is incoming, and stays bound until the relay is destroyed.</p>
+
+<p><code>msg_type</code> <em>(string)</em> name of the message you want to listen for or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else left in the global namspeace</p>
+
+<p><code>cb</code> <em>(function)</em> callback function when message is received, takes 1 argument which is incoming message data (object)</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">my_relay</span>.<span class="pl-en">on</span>( <span class="pl-s"><span class="pl-pds">"</span>save.user_action<span class="pl-pds">"</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">data</span>){
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>incoming message<span class="pl-pds">"</span></span>, data);    
+});</pre></div>
+</blockquote>
+
+<h3>
+<a id="send-msg_type-destination-data-cb-" class="anchor" href="#send-msg_type-destination-data-cb-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.send( msg_type, destination, data, cb )</h3>
+
+<blockquote>
+<p>This function allows a relay to send a message to a specific destination level, which will be intercepted by any listeners at that context level.</p>
+
+<p><code>msg_type</code> <em>(string)</em> name of the message you wish to send or (array) or multiple message types</p>
+
+<p><code>destination</code> <em>(string)</em> the destination level (one of the enum levels listed below) or a level/tab.id combo (see <a href="#specific-tab-channels"><em>specific tab channels</em></a> below)</p>
+
+<p><code>data</code> <em>(JSON serializable object)</em> data to send along with the message</p>
+
+<p><code>cb</code> <em>(function)</em> callback function that can be used by the listener to respond to the message directly. </p>
+
+<p><strong>NOTE</strong> the responder callback functionality only works when sending communications between a content script and a background script, as it leverages <a href="https://developer.chrome.com/extensions/runtime#method-sendMessage">chrome.runtime.sendMessage</a>, and generally this functionality is not commonly needed.</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">my_relay</span>.<span class="pl-c1">send</span>( <span class="pl-s"><span class="pl-pds">"</span>save<span class="pl-pds">"</span></span>, <span class="pl-smi">my_relay</span>.<span class="pl-smi">levels</span>.<span class="pl-smi">extension</span>, {foo<span class="pl-k">:</span><span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>} );</pre></div>
+</blockquote>
+
+<h3>
+<a id="off-msg_type-" class="anchor" href="#off-msg_type-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.off( msg_type )</h3>
+
+<blockquote>
+<p>This function allows you to unbind msg type listeners from this relay, or all message types in a namespace for this relay.</p>
+
+<p><code>msg_type</code> <em>(string)</em> name of the message you want to unbind or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else if no namespace is supplied ALL messages of that type(s) will be unbound</p>
+
+<p><strong>NOTE</strong> this function gives more specific control for unbinding based on message type - if you want to do unbinding for specific namespaces or all messages, see <code>offAll()</code> below</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">//unbind listeners for message type 'reload' (regardless of namespace)</span>
+<span class="pl-smi">my_relay</span>.<span class="pl-en">off</span>( <span class="pl-s"><span class="pl-pds">"</span>reload<span class="pl-pds">"</span></span> );
+
+<span class="pl-c">//unbind listeners for message type 'save' in namespace 'user_action', and all listeners for message type 'notify'</span>
+<span class="pl-smi">my_relay</span>.<span class="pl-en">off</span>( [<span class="pl-s"><span class="pl-pds">"</span>save.user_action<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>notify<span class="pl-pds">"</span></span>] );</pre></div>
+</blockquote>
+
+<h3>
+<a id="offall-namespace-" class="anchor" href="#offall-namespace-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.offAll( namespace )</h3>
+
+<blockquote>
+<p>This function allows you to unbind msg type listeners from the relay, either to unbind ALL listeners, or all of a specific namespace</p>
+
+<p><code>namespace</code> <em>(string, optional)</em> the namespace for which you want to unbind listeners</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">//unbind all listeners for namespace 'user_action' (regardless of message type they are bound for)</span>
+<span class="pl-smi">my_relay</span>.<span class="pl-en">offAll</span>( <span class="pl-s"><span class="pl-pds">"</span>user_action<span class="pl-pds">"</span></span> );
+
+<span class="pl-c">//unbind ALL listeners, regardless of namespace or message type</span>
+<span class="pl-smi">my_relay</span>.<span class="pl-en">offAll</span>();</pre></div>
+</blockquote>
+
+<h3>
+<a id="levels" class="anchor" href="#levels" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.levels</h3>
+
+<blockquote>
+<p>This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the <code>.send()</code> function above:</p>
+
+<ul>
+<li>iframe</li>
+<li>iframe_shim</li>
+<li>page</li>
+<li>content</li>
+<li>extension</li>
+</ul>
+
+<p><strong>NOTE</strong> - Iframe shim is an intermediary iframe intended for use for extensions that cannot load iframes on a page due to CSP (content security policy) preventing it on page, regardless of manifest settings. This allows you to load an iframe from chrome-extension:// that just loads another iframe within to your intended SRC. The iframe_shim level lets messages flow properly from the child iframe up to the content scripts (and further up the context)</p>
+</blockquote>
+
+<h3>
+<a id="mocksend-msg_type-data-" class="anchor" href="#mocksend-msg_type-data-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.mockSend( msg_type, data )</h3>
+
+<blockquote>
+<p>This function allows you to send a mock event to the relay as if it had received an incoming event from a different level. This is useful for building tests for applications that leverage the message relay and depend on it's functionality. </p>
+
+<p><code>msg_type</code> <em>(string)</em> name of the message you wish to call bound listeners for</p>
+
+<p><code>data</code> <em>(JSON serializable object, optional)</em> data to send along with the message</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">//sent a mock message for an previously bound message type in my test suite</span>
+<span class="pl-smi">my_relay</span>.<span class="pl-en">mockSend</span>( <span class="pl-s"><span class="pl-pds">"</span>save<span class="pl-pds">"</span></span>, {foo<span class="pl-k">:</span><span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>} );</pre></div>
+</blockquote>
+
+<h2>
+<a id="specific-tab-channels" class="anchor" href="#specific-tab-channels" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Specific Tab Channels</h2>
+
+<p>In many cases you may be sending a message down to a content, page, iframe, or iframe_shim context from the extension background. The message relay will, by default, broadcast the message across all tabs so any registered listeners in your namespace can receive/forward the message. Sometimes this is desired, but not always. To broadcast a message from the extension context down to a specific tab channel, you can use a special exposed function on the message relay when specifying the destination level to indicate the tab ID you wish to broadcast to. This function is detailed below:</p>
+
+<h3>
+<a id="levelviatabid-level-tabid-" class="anchor" href="#levelviatabid-level-tabid-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.levelViaTabId( level, tab.id )</h3>
+
+<blockquote>
+<p>An example of using this from the extension context, to send the message only through the currently active tab channel is:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> relay <span class="pl-k">=</span> <span class="pl-en">chrome_extension_message_relay</span>( <span class="pl-s"><span class="pl-pds">"</span>myextension.relay_namespace<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>extension<span class="pl-pds">"</span></span> );
+
+<span class="pl-smi">chrome</span>.<span class="pl-smi">tabs</span>.<span class="pl-en">getSelected</span>(<span class="pl-k">function</span>(<span class="pl-smi">tab</span>){
+  <span class="pl-smi">relay</span>.<span class="pl-c1">send</span>(
+      <span class="pl-s"><span class="pl-pds">"</span>foo.bar<span class="pl-pds">"</span></span>,
+      <span class="pl-smi">relay</span>.<span class="pl-en">levelViaTabId</span>( <span class="pl-smi">relay</span>.<span class="pl-smi">levels</span>.<span class="pl-smi">page</span>, <span class="pl-smi">tab</span>.<span class="pl-c1">id</span> ),
+      { foo<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span> }
+  );
+});</pre></div>
+</blockquote>
+
+<p>A useful utility function exists to help you get the tab information for the last received message (often useful if you want to leverage the levelViaTabId function above to communicate directly back to that tab). The function is:</p>
+
+<h3>
+<a id="getlastmsgsenderinfo" class="anchor" href="#getlastmsgsenderinfo" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>.getLastMsgSenderInfo()</h3>
+
+<blockquote>
+<p>This function returns the tab that last communicated with the extension. So an example of responding directly back would be:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">relay</span>.<span class="pl-en">on</span>( <span class="pl-s"><span class="pl-pds">'</span>msg_from_content<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">data</span>){
+    <span class="pl-k">var</span> _tab <span class="pl-k">=</span> <span class="pl-smi">relay</span>.<span class="pl-en">getLastMsgSenderInfo</span>();
+    <span class="pl-smi">relay</span>.<span class="pl-c1">send</span>( <span class="pl-s"><span class="pl-pds">'</span>response<span class="pl-pds">'</span></span>, <span class="pl-smi">relay</span>.<span class="pl-en">levelViaTabId</span>( <span class="pl-smi">relay</span>.<span class="pl-smi">levels</span>.<span class="pl-c1">content</span>, <span class="pl-smi">_tab</span>.<span class="pl-c1">id</span>), {foo<span class="pl-k">:</span><span class="pl-s"><span class="pl-pds">'</span>bar<span class="pl-pds">'</span></span>} );
+});</pre></div>
+</blockquote>
+
+<h2>
+<a id="development---testing--building" class="anchor" href="#development---testing--building" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Development - testing &amp; building</h2>
+
+<p><em>NOTE: This section is only relevent for developers who wish to contribute to this project</em></p>
+
+<p>A full unit test suite exists to test/verify functionality of all internal functions of the message relay, as well as to strip some needed test functionality out and package the relay for production usage.</p>
+
+<p>To use this functionality locally you must first do an <code>npm install</code>.</p>
+
+<p>Development on the package takes place in <em>/dev/message_relay.dev.js</em>. There is functionality that is exposed purely for testing and should <em>not</em> be included with the packaged version. Lines to be removed for packaging are indicated with comment blocks <em>/*REM*/</em>, and inline comments indicate the test functionality and how it's used.</p>
+
+<p>If the test/dev version of the relay is included on a page and you try to create a relay with it for any level other than <em>test</em>, a <code>ChromeExtensionMessageRelayError</code> will be thrown on the page and the relay will not function</p>
+
+<p>To run the full test suite, package the relay for districution, and run some sanity tests on the packaged build, you can run <code>gulp build</code> in the command line from the root dir of the package.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/ecaroth/chrome-extension-message-relay">Chrome-extension-message-relay</a> is maintained by <a href="https://github.com/ecaroth">ecaroth</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
