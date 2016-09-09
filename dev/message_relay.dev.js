@@ -1,33 +1,32 @@
-"use strict";
-
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal 
 // functions for testing. Use the modified, minified version in /dist/message_relay.prod.js
 
 // NOTE - lines that include /*REM*/ are stripped when building production version of this script
 
-(function(){
+(() => {
+    "use strict";
 
-    var relay = function( namespace, relay_level, debug ){
+    const relay = function( namespace, relay_level, debug ){
 
-        var _debug = debug || false,
+        let _debug = debug || false,
 
-            _levels = {                             //available levels msg relay can be used at
+            LEVELS = Object.freeze({                //available levels msg relay can be used at
                 extension:  'extension',            //relay running in chrome extension
                 content:    'content',              //relay running in content script
                 page:       'page',                 //relay running on web page
                 iframe:     'iframe',               //relay running in iframe
                 iframe_shim:'iframe_shim',          //relay running in an iframe shim (see readme)
                 test:       'test'                  //relay for unit testing
-            },
-            _level_order = {                        //ordering of levels (indicitive of how messages can bubble up/down)
+            }),
+            LEVEL_ORDER = Object.freeze({           //ordering of levels (indicitive of how messages can bubble up/down)
                 extension:      4,
                 content:        3,
                 page:           2,
                 iframe_shim:    1,
                 iframe:         0,
                 test:           -1
-            },
+            }),
 
             level = relay_level,                        //relay level (one of 'content','page','iframe','extension') - the level that THIS relay is listening at
             received_messages = {},                     //digest of all received messages by msg_id, which is cleaned out every 2 mins to keep memory usage down
@@ -41,7 +40,7 @@
         
         // =============== START OF TEST-ONLY VARIABLE DEFS ====================
 
-        var test_response = null;  //Response function used to validate tests in a few circumstances        /*REM*/ 
+        let test_response = null;  //Response function used to validate tests in a few circumstances        /*REM*/ 
             
         // =============== END OF TEST-ONLY VARIABLE DEFS ====================
 
@@ -49,19 +48,20 @@
         //you can also namespace msg types with msg_type.namespace, or specify no namespace
         function _bind( msg_types, cb ){
             if( typeof msg_types === 'string' ) msg_types = [msg_types];
-            for(var i=0; i<msg_types.length; i++){
-                var mtype_info = _get_mtype_info(msg_types[i]);
 
+            msg_types.forEach((msg_type) =>{
+                let mtype_info = _get_mtype_info(msg_type);
                 if(!(mtype_info.type in listeners)) listeners[mtype_info.type] = [];
                 listeners[mtype_info.type].push({ 'fn': cb, 'ns': mtype_info.namespace});
-            }
+            });
         }
 
         //this function allows you to unbind any msg type as a listener (with a sepcified namespace or ALL events of this type(s) if no namespace is supplied)
         function _unbind(msg_types){
             if( typeof msg_types === 'string' ) msg_types = [msg_types];
-            for(var i=0; i<msg_types.length; i++){
-                var mtype_info = _get_mtype_info(msg_types[i]);
+
+            msg_types.forEach((msg_type) => {
+                let mtype_info = _get_mtype_info(msg_type);
 
                 if(mtype_info.type in listeners){
                     if(!mtype_info.namespace){
@@ -72,23 +72,23 @@
                         _unbind_namspace_listeners_for_message_type( mtype_info.type, mtype_info.namespace );
                     }
                 }
-            }
+            });
         }
 
         //this function parses message type into component parts (type && namespace)
         function _get_mtype_info(msg_type){
-            var parts = msg_type.split(".");
+            let parts = msg_type.split(".");
             return {
                 type: parts.splice(0,1)[0],
                 namespace: parts.length > 0 ? parts.join(".") : null
             };
         }
 
-
         //utility function to unbind all namespaced listeners for supplied message type
         function _unbind_namspace_listeners_for_message_type( msg_type, namespace ){
             if(!(msg_type in listeners)) return;
-            for( var i = listeners[msg_type].length-1; i>=0; i--){
+
+            for( let i = listeners[msg_type].length-1; i>=0; i--){
                 if(listeners[msg_type][i].ns === namespace) listeners[msg_type].splice(i,1);
             }
         }
@@ -98,7 +98,7 @@
             if( !namespace){
                 listeners = {};
             }else{
-                for(var msg_type in listeners){
+                for(let msg_type in listeners){
                     _unbind_namspace_listeners_for_message_type(msg_type, namespace);
                 }
             }
@@ -107,13 +107,13 @@
         //get the base msg object used for relaying
         function _get_msg( type, dest, up, data ){
             //type = string, message type (specified when calling send_up or send_down)
-            //dest = detination level (one of _levels) - NOTE: can specific a specific tab.id to use only by specifying a @tab.id
+            //dest = detination level (one of LEVELS) - NOTE: can specific a specific tab.id to use only by specifying a @tab.id
             //up = boolean, is this message going upwards (else going down)
             //data = javascript variable to pass with message
             if(!data) data = {};
-            var msg_id = ('msg_id' in data) ? data.msg_id : dest +":"+type+":"+(new Date().getTime());
+            let msg_id = ('msg_id' in data) ? data.msg_id : `${dest}:${type}:${new Date().getTime()}`;
             data.msg_id = msg_id;
-            var msg_obj = {
+            let msg_obj = {
                 msg_type:           type,
                 msg_from:           level,
                 msg_destination:    dest,
@@ -123,7 +123,7 @@
                 msg_id:             msg_id,
                 msg_tab_id:         null
             };
-            var _dest = _parse_destination(dest);
+            let _dest = _parse_destination(dest);
             if( _dest.tab_id ){
                 msg_obj.msg_destination = _dest.level;
                 msg_obj.msg_tab_id = _dest.tab_id;
@@ -134,79 +134,83 @@
         //send a message to the specified level(s) - NOTE destinations can be a string or array of destination strings
         function _send_msg( msg_type, destinations, data , cb ){
             if( typeof destinations === 'string' ) destinations = [destinations];
-            for(var i=0; i<destinations.length; i++) {
-                if( !_is_valid_destination(destinations[i]) ){
-                    _log("NOTICE - invalid level specified as destination ("+destinations[i]+")");
-                    continue;
+
+            destinations.forEach((dest) => {
+                if( !_is_valid_destination(dest) ){
+                    return _log(`NOTICE - invalid level specified as destination (${dest})`);
                 }
-                var _dest_level = _parse_destination(destinations[i]).level;
-                if (_level_order[_dest_level] < _level_order[level]) {
-                    _send_down(msg_type, destinations[i], data, cb);
+
+                let _dest_level = _parse_destination(dest).level;
+
+                if (LEVEL_ORDER[_dest_level] < LEVEL_ORDER[level]) {
+                    _send_down(msg_type, dest, data, cb);
                 } else {
-                    _send_up(msg_type, destinations[i], data, cb);
+                    _send_up(msg_type, dest, data, cb);
                 }
-            }
+
+            });
         }
 
         //send a message DOWN the listening stack (exposed as <instance>.send_down)
         function _send_down( msg_type, destination, data, cb ){
-            var msg = _get_msg( msg_type, destination, false, data );
-            _log( "Send msg DOWN from "+level+" to "+destination+" : "+msg_type+" - "+JSON.stringify(data));
+            let msg = _get_msg( msg_type, destination, false, data );
+            _log( `Send msg DOWN from ${level} to ${destination} : ${msg_type} - ${JSON.stringify(data)}`);
             _relay( msg, cb );
         }
 
         //send a message UP the listening stack (exposed as <instance>.send_up)
         function _send_up( msg_type, destination, data, cb ){
-            var msg = _get_msg( msg_type, destination, true, data );
-            _log( "Send msg UP from "+level+" to "+destination+" : "+msg_type+" - "+ JSON.stringify(data));
+            let msg = _get_msg( msg_type, destination, true, data );
+            _log( `Send msg UP from ${level} to ${destination} : ${msg_type} - ${JSON.stringify(data)}`);
             _relay( msg, cb );
         }
 
         //fn to relay a message from this_level either up/down (using appropriate method baesd on data.msg_destination)
         function _relay_from_to_level( this_level, data, cb ){
-            if( this_level === _levels.extension && _level_order[data.msg_destination] < _level_order.extension ){
+
+            if( this_level === LEVELS.extension && LEVEL_ORDER[data.msg_destination] < LEVEL_ORDER.extension ){
                 //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.tabs.sendMessage
                 //UNLESS a specific tab id is included on the request destination
                 
-                if(level === _levels.test){                                                             /*REM*/
+                if(level === LEVELS.test){                                                             /*REM*/
                     if(typeof test_response === 'function') test_response("extension_down", data, cb);  /*REM*/
                 }else{                                                                                  /*REM*/
-                    chrome.tabs.query({}, function(tabs){
-                        for (var i = 0; i < tabs.length; i++) {
-                            if(data.msg_tab_id && tabs[i].id !== data.msg_tab_id) continue;
-                            chrome.tabs.sendMessage(tabs[i].id, data, function(response){
+                    chrome.tabs.query({}, (tabs) => {
+                        tabs.forEach((tab) => {
+                            if(data.msg_tab_id && tab.id !== data.msg_tab_id) return;
+                            chrome.tabs.sendMessage(tab.id, data, (response) =>{
                                 if(cb) cb(response);
                             });
-                        }
+                        });
                     });
                 }                                                                                       /*REM*/
-            }else if( (this_level === _levels.content && data.msg_destination === _levels.extension) || this_level === _levels.extension ){
+            }else if( (this_level === LEVELS.content && data.msg_destination === LEVELS.extension) || this_level === LEVELS.extension ){
                 //going UP form content script to extension.. use chrome runtime sendmessage
                         
-                if(level === _levels.test){                                                             /*REM*/
+                if(level === LEVELS.test){                                                             /*REM*/
                     if(typeof test_response === 'function') test_response("content_up", data, cb);      /*REM*/
                 }else{                                                                                  /*REM*/
-                    chrome.runtime.sendMessage( data, function(response) {
+                    chrome.runtime.sendMessage( data, (response) => {
                         if(cb && typeof cb === 'function') cb(response);
                     }); 
                 }                                                                                       /*REM*/
             }else{
                 //no interaction with extension background, broadcast UP w/ postmessage so content/page can receive
-                if( this_level === _levels.iframe || this_level === _levels.iframe_shim ) { 
-                    if(level === _levels.test){                                                         /*REM*/
+                if( this_level === LEVELS.iframe || this_level === LEVELS.iframe_shim ) { 
+                    if(level === LEVELS.test){                                                         /*REM*/
                         if(typeof test_response === 'function') test_response("iframe_up", data, cb);   /*REM*/
                     }else{                                                                              /*REM*/
                         window.parent.postMessage(data, "*");
                     }                                                                                   /*REM*/
-                }else if( (this_level === _levels.page || this_level === _levels.content) && data.msg_destination === _levels.iframe){
+                }else if( (this_level === LEVELS.page || this_level === LEVELS.content) && data.msg_destination === LEVELS.iframe){
                     //going DOWN from page or content to iframe, so postMessage to iframe(s) directly
                     //TODO: add support for targetting a specific iframe domain or DOM elem?
                     
-                    if(level === _levels.test){                                                         /*REM*/
+                    if(level === LEVELS.test){                                                         /*REM*/
                         if(typeof test_response === 'function') test_response("iframe_down", data, cb); /*REM*/
                     }else{                                                                              /*REM*/
-                        var iframes = document.getElementsByTagName('iframe');
-                        for(var i=0; i<iframes.length; i++){
+                        let iframes = document.getElementsByTagName('iframe');
+                        for(let i=0; i<iframes.length; i++){
                             try{
                                 iframes[i].contentWindow.postMessage(data, "*");
                             }catch(e){}
@@ -214,7 +218,7 @@
                     }                                                                                   /*REM*/
                 }else{
                     //communication between content and page directly (UP or DOWN) or from content to iframe_shim
-                    if(level === _levels.test){                                                         /*REM*/
+                    if(level === LEVELS.test){                                                         /*REM*/
                         if(typeof test_response === 'function'){                                        /*REM*/
                             test_response("page_content_"+(data.msg_up ? 'up' : 'down'), data, cb);     /*REM*/
                         }                                                                               /*REM*/
@@ -234,19 +238,14 @@
         //This function is called for every incoming message to this level and determines if the messsage is intended for this level
         //(and calls needed listeners) or continues relaying it upwards/downwards
         function _incoming_message( msg, responder, sender ){
-            //searialize/unserialize msg object so we don't end up with closure memory leaks
-            msg = JSON.parse( JSON.stringify(msg) );
+            //searialize/unserialize msg object so we don't end up with closure memory leaks, then assign
+            let {msg_data, msg_from, msg_up, msg_destination, msg_type, msg_id} = JSON.parse( JSON.stringify(msg) );
 
-            var msg_data =          msg.msg_data,
-                msg_from =          msg.msg_from,
-                msg_up =            msg.msg_up,
-                msg_destination =   msg.msg_destination,
-                msg_type =          msg.msg_type,
-                msg_id =            msg.msg_id;
-
+            //set last sender & last message type
             if(sender) last_sender_info = sender;
             last_msg_type = msg_type;
-            var _msg_reception_id = msg_id+':'+msg_destination;
+
+            let _msg_reception_id = `${msg_id}:${msg_destination}`;
 
             if(msg_from === level || (_msg_reception_id in received_messages)){
                 //message already received - need this because page scripts and content scripts listen at same 
@@ -256,10 +255,10 @@
 
             if( msg_destination === level ){
                 //message intended for this level, call any bound listeners
-                _log( "Msg ("+msg_type+") received from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
+                _log( `Msg (${msg_type}) received from ${msg_from} to ${msg_destination} - ${JSON.stringify(msg_data)}` );
                 received_messages[_msg_reception_id] = 0;
 
-                if(level === _levels.test && test_response === 'function'){                             /*REM*/
+                if(level === LEVELS.test && typeof test_response === 'function'){                      /*REM*/
                     test_response("call_listener", msg);                                                /*REM*/
                 }else{                                                                                  /*REM*/
                     _call_bound_listeners( msg_type, msg_data, sender, responder );
@@ -268,15 +267,15 @@
                 //message still bubbling up/down.. just relay if needed
                 msg.msg_from = level;
 
-                if(level === _levels.test && typeof test_response === 'function'){                      /*REM*/
+                if(level === LEVELS.test && typeof test_response === 'function'){                      /*REM*/
                     test_response("bubble", msg);                                                       /*REM*/
                 }else{                                                                                  /*REM*/
-                    if(msg_up && _level_order[level] > _level_order[msg_from]){
+                    if(msg_up && LEVEL_ORDER[level] > LEVEL_ORDER[msg_from]){
                         _relay( msg );
-                        _log( "Msg ("+msg_type+") relaying UP from "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
-                    }else if(!msg_up && _level_order[level] < _level_order[msg_from]){
+                        _log( `Msg (${msg_type}) relaying UP from ${msg_from} to ${msg_destination} - ${JSON.stringify(msg_data)}` );
+                    }else if(!msg_up && LEVEL_ORDER[level] < LEVEL_ORDER[msg_from]){
                         _relay( msg );
-                        _log( "Msg ("+msg_type+") relaying DOWN "+msg_from+" to "+msg_destination+' - '+ JSON.stringify(msg_data) );
+                        _log( `Msg (${msg_type}) relaying DOWN ${msg_from} to ${msg_destination} - ${JSON.stringify(msg_data)}` );
                     }
                 }                                                                                       /*REM*/    
             }
@@ -287,26 +286,27 @@
         //call all bound listeners for this message type at this level
         function _call_bound_listeners( msg_type, msg_data, responder ){
             if(!(msg_type in listeners)) return;
-            for(var i=0; i < listeners[msg_type].length; i++ ){
+
+            listeners[msg_type].forEach((listener) => {
                 if(typeof responder === 'function'){
                     //includes responder function (extension only)
-                    listeners[msg_type][i].fn.call(listeners[msg_type][i],  msg_data, responder );
+                    listener.fn.call(listener,  msg_data, responder );
                 }else{
-                    listeners[msg_type][i].fn.call( listeners[msg_type][i], msg_data );
+                    listener.fn.call( listener, msg_data );
                 }
-            }
+            });
         }
 
         //check if a level is an actual context level (or level w/ tab.id)
         function _is_valid_destination(dest){
             if(!dest) return false;
-            var _level = _parse_destination(dest).level;
-            return (_level in _levels);
+            let _level = _parse_destination(dest).level;
+            return (_level in LEVELS);
         }
 
         //function to parse a destination address and return level (and optionally set tab.id)
         function _parse_destination(dest){
-            var parts = dest.split("@");
+            let parts = dest.split("@");
             return {
                 level:      parts[0],
                 tab_id:     parts.length > 0 ? parseInt(parts[1],10) : null
@@ -314,32 +314,33 @@
         }
 
         //function to direct a message through channels via specific tab.id
-        function _level_via_tab_id( _level, _tab_id ){
-            return _level+"@"+_tab_id;
+        function _level_via_tab_id( level, tab_id ){
+            return `${level}@${tab_id}`;
         }
 
         //log function (that fires only if debug is enabled)
         function _log( msg ){
             if(!_debug) return;
-            console.log("::MSG-RELAY ("+level+"):: "+msg);
+            console.log(`::MSG-RELAY (${level}):: ${msg}`);
         }
 
         //fn to mock an incoming message to the relay (as if incoming from a different level) - useful for testing 
         //funcitonality tied to bound listeners in applications that use the relay
         function _mock_send_msg( msg_type, data ){
-            var _msg = _get_msg( msg_type, level, true, data );
+            let _msg = _get_msg( msg_type, level, true, data );
             _msg.msg_from = 'mock';
-            _incoming_message( _msg, null, {tabId:999} );
+            _incoming_message( _msg, null, {tabId: 999} );
         }
 
 
         //setup received_messages clear interval, where we clean 2 intervals ago IDs up and mark this batches
         //for deletion in the next interval
         function _setup_received_msg_clean_interval(){
-            received_msg_clean_tmo = setInterval(function(){
-                var DELETE = 1,
+            const   DELETE = 1, 
                     MARK_FOR_NEXT_ROUND_DELETE = 0;
-                for(var _msg_id in received_messages){
+
+            received_msg_clean_tmo = setInterval(function(){
+                for(let _msg_id in received_messages){
                     if(received_messages[_msg_id] === MARK_FOR_NEXT_ROUND_DELETE){
                         received_messages[_msg_id] = DELETE;
                     }else{
@@ -357,7 +358,7 @@
         
         //fn to check current env and throw error if we are NOT in test env
         function _is_test(){                                                                                            /*REM*/
-            if(level !== _levels.test){                                                                                 /*REM*/
+            if(level !== LEVELS.test){                                                                                  /*REM*/
                 throw new ChromeExtensionMessageRelayError("Cannot call test methods @ this level!");                   /*REM*/
             }                                                                                                           /*REM*/
             return true;                                                                                                /*REM*/
@@ -369,14 +370,14 @@
             return token;                                                                                               /*REM*/
         }                                                                                                               /*REM*/
 
-        var test_functions = {                                                                                          /*REM*/
-            getListeners:   function(){ return _test(listeners); }, //get internal listeners obj                        /*REM*/
-            setListeners:   function(v){ _is_test(); listeners=v; }, //set internal listeners obj                       /*REM*/
-            clearTMO:       function(){ clearInterval(received_msg_clean_tmo); }, //clear currently running tmo         /*REM*/
-            setTMOsecs:     function(v){ received_msg_clean_interval_secs = v; }, //set the tmo interval seconds        /*REM*/
-            setRecMsg:      function(v){ received_messages = v; }, //set the received_messages msg_obj                  /*REM*/
-            setResponseFn:  function(fn){ _is_test(); test_response=fn; }, //set test fn that is called for responses   /*REM*/
-            token:          function(token){                                                                            /*REM*/
+        const test_functions = {                                                                                        /*REM*/
+            getListeners:   () => { return _test(listeners); }, //get internal listeners obj                            /*REM*/
+            setListeners:   (v) => { _is_test(); listeners=v; }, //set internal listeners obj                           /*REM*/
+            clearTMO:       () => { clearInterval(received_msg_clean_tmo); }, //clear currently running tmo             /*REM*/
+            setTMOsecs:     (v) => { received_msg_clean_interval_secs = v; }, //set the tmo interval seconds            /*REM*/
+            setRecMsg:      (v) => { received_messages = v; }, //set the received_messages msg_obj                      /*REM*/
+            setResponseFn:  (fn) => { _is_test(); test_response=fn; }, //set test fn that is called for responses       /*REM*/
+            token:          (token) => {                                                                                /*REM*/
                                 _is_test();                                                                             /*REM*/
                                 return eval(token);                                                                     /*REM*/ // jshint ignore:line
             } //get exposed reference to an internal fn/var                                                             /*REM*/
@@ -384,28 +385,28 @@
 
 
         //create custom error class
-        function ChromeExtensionMessageRelayError(message) {                                            /*REM*/
-            this.name = 'ChromeExtensionMessageRelayError';                                             /*REM*/
-            this.message = message || 'Error in chrome extension message relay';                        /*REM*/
-            this.stack = (new Error()).stack;                                                           /*REM*/
-        }                                                                                               /*REM*/
-        ChromeExtensionMessageRelayError.prototype = Object.create(Error.prototype);                    /*REM*/
-        ChromeExtensionMessageRelayError.prototype.constructor = ChromeExtensionMessageRelayError;      /*REM*/
+        function ChromeExtensionMessageRelayError(message) {                                                            /*REM*/
+            this.name = 'ChromeExtensionMessageRelayError';                                                             /*REM*/
+            this.message = message || 'Error in chrome extension message relay';                                        /*REM*/
+            this.stack = (new Error()).stack;                                                                           /*REM*/
+        }                                                                                                               /*REM*/
+        ChromeExtensionMessageRelayError.prototype = Object.create(Error.prototype);                                    /*REM*/
+        ChromeExtensionMessageRelayError.prototype.constructor = ChromeExtensionMessageRelayError;                      /*REM*/
 
-        if(level !== _levels.test){                                                                         /*REM*/
-            var msg = "ERROR - you are using a version of the script intended only for dev and testing! ";  /*REM*/
-            msg += "Please use the version in /dist/message_relay.prod.js";                                 /*REM*/
-            throw new ChromeExtensionMessageRelayError(msg);                                                /*REM*/
-        }                                                                                                   /*REM*/
+        if(level !== LEVELS.test){                                                                                      /*REM*/
+            let msg = "ERROR - you are using a version of the script intended only for dev and testing! ";              /*REM*/
+            msg += "Please use the version in /dist/message_relay.prod.js";                                             /*REM*/
+            throw new ChromeExtensionMessageRelayError(msg);                                                            /*REM*/
+        }                                                                                                               /*REM*/
             
 
         // =============== END OF TEST-ONLY FUNCTIONALITY ====================
 
 
-        if( level !== _levels.test ){
+        if( level !== LEVELS.test ){
             //if NOT in test ENV, bind needed listeners for appropriate ENV to wire things up
         
-            if( [_levels.page,_levels.content,_levels.iframe,_levels.iframe_shim].indexOf(level) !== -1  ){
+            if( [LEVELS.page,LEVELS.content,LEVELS.iframe,LEVELS.iframe_shim].indexOf(level) !== -1  ){
                 //this relay is in the page, content, or iframe level so setup listener for postmessage calls
                 window.addEventListener('message', function(event){
                     if(typeof event.data === 'object' && 'msg_namespace' in event.data && (event.data.msg_namespace === msg_namespace)){
@@ -413,7 +414,7 @@
                     }
                 });
             }
-            if( [_levels.content,_levels.extension].indexOf(level) !== -1 ){
+            if( [LEVELS.content,LEVELS.extension].indexOf(level) !== -1 ){
                 //this relay is in the content or extension level, so setup listensers for chrome ext message passing
                 try{
                     chrome.runtime.onMessage.addListener(
@@ -427,29 +428,29 @@
 
 
         return {
-            levels: _levels,            //get list of available levels
+            levels: LEVELS,            //get list of available levels
             on: _bind,                  //bind listener for msg event
             off: _unbind,               //unbind listener for msg event
             offAll: _unbind_all,        //unbind all listeners at this level
             send: _send_msg,            //send message to specific level(s)
             levelViaTabId: _level_via_tab_id,   //send message to specific level (on tabId channel only)
-            getLastMsgSenderInfo: function(){   //get the sender info for last received message
+            getLastMsgSenderInfo: () => {       //get the sender info for last received message
                 return last_sender_info; 
             },
-            getLastMsgType: function(){         //get the msg type for last received message
+            getLastMsgType: () => {             //get the msg type for last received message
                 return last_msg_type; 
             },
             mockSend: _mock_send_msg    //mock an incoming message to this level, useful for testing apps that use script
-            , test: test_functions      //functionality exposed only for testing purposes    /*REM*/
+            , test: test_functions      //functionality exposed only for testing purposes                               /*REM*/
         };
     };
 
-        if (('undefined' !== typeof module) && module.exports) {
-           //publish for node
-           module.exports = relay;
-        }else{
-            //publish for browser/extension
-            window.chrome_extension_message_relay = relay;
-        }
+    if (('undefined' !== typeof module) && module.exports) {
+       //publish for node
+       module.exports = relay;
+    }else{
+        //publish for browser/extension
+        window.chrome_extension_message_relay = relay;
+    }
 
 })();

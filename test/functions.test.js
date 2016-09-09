@@ -21,7 +21,7 @@ describe("Individual internal functions", function(){
 		RELAY.test.setListeners(val || {});
 	}
 	function _msg_base( from_lvl, to_lvl ){
-		var _orders = RELAY.test.token("_level_order");
+		var _orders = RELAY.test.token("LEVEL_ORDER");
 		return {
 			msg_type:           'foobar',
             msg_from:           from_lvl,

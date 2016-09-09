@@ -1,18 +1,17 @@
 "use strict";
-var gulp = require('gulp'),
-	jshint = require('gulp-jshint'),
-	rename = require("gulp-rename"),
-	runSequence = require('run-sequence'),
-	stylish = require('jshint-stylish'),
-	argv = require('yargs').argv,
-	mocha = require('gulp-mocha'),
-	insert = require('gulp-insert'),
-  	uglify = require('gulp-uglify'),
-  	strip_line = require('gulp-strip-line');
+const gulp = require('gulp'),
+	    jshint = require('gulp-jshint'),
+      rename = require("gulp-rename"),
+      runSequence = require('run-sequence'),
+      stylish = require('jshint-stylish'),
+      argv = require('yargs').argv,
+      mocha = require('gulp-mocha'),
+      insert = require('gulp-insert'),
+      uglify = require('gulp-uglify-harmony'),
+      strip_line = require('gulp-strip-line');
 
 const PACKAGE = require('./package.json');
 const ATTIBUTION = "/* Version "+PACKAGE.version+" "+PACKAGE.name+" ("+PACKAGE.homepage+"), Authored by "+PACKAGE.author+" */"+"\n\n";
-
 
 gulp.task('build', function(cb) {
   runSequence(
@@ -75,7 +74,13 @@ gulp.task('test_single', ['lint'], function(){
 //test scripts
 gulp.task('test', [], function(){
   return gulp.src('test/**/*.test.js', {read: false})
-  	.pipe(mocha({reporter:'spec',fullTrace: true}))
+  	.pipe(mocha({
+      reporter:'spec',
+      fullTrace: true,
+      compilers: {
+          js: require('babel-core/register')
+      }
+    }))
   	.on("error", function(err) {
   		console.log(err.toString());
   		this.emit('end');
