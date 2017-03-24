@@ -1,4 +1,4 @@
-#Chrome Extension Message Relay
+# Chrome Extension Message Relay
 
 
 A message relay class to make development of Chrome Extensions faster and easier by exposing a dead-simple communication interface between context levels (iframe, page, content scripts, background scripts). The script leverages a combination of [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage) and [window.postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window.postMessage) to facilitate this communication.
