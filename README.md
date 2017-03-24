@@ -80,7 +80,7 @@ Once created you have access to the following functions on the object:
 
 
 
-###.on( msg_type, cb )
+### .on( msg_type, cb )
 > This function gives the ability to listen for incoming messages to this context level (from any other level) and execute a callback when the message is received. The bound listener executes each time the message is incoming, and stays bound until the relay is destroyed.
 
 > `msg_type` _(string)_ name of the message you want to listen for or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else left in the global namspeace
@@ -93,7 +93,7 @@ Once created you have access to the following functions on the object:
 > });
 >```
 
-###.send( msg_type, destination, data, cb )
+### .send( msg_type, destination, data, cb )
 > This function allows a relay to send a message to a specific destination level, which will be intercepted by any listeners at that context level.
 
 > `msg_type` _(string)_ name of the message you wish to send or (array) or multiple message types
@@ -110,7 +110,7 @@ Once created you have access to the following functions on the object:
 > my_relay.send( "save", my_relay.levels.extension, {foo:"bar"} );
 > ```
 
-###.off( msg_type )
+### .off( msg_type )
 > This function allows you to unbind msg type listeners from this relay, or all message types in a namespace for this relay.
 
 > `msg_type` _(string)_ name of the message you want to unbind or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else if no namespace is supplied ALL messages of that type(s) will be unbound
@@ -125,7 +125,7 @@ Once created you have access to the following functions on the object:
 > my_relay.off( ["save.user_action","notify"] );
 >```
 
-###.offAll( namespace )
+### .offAll( namespace )
 > This function allows you to unbind msg type listeners from the relay, either to unbind ALL listeners, or all of a specific namespace
 
 > `namespace` _(string, optional)_ the namespace for which you want to unbind listeners
@@ -138,7 +138,7 @@ Once created you have access to the following functions on the object:
 > my_relay.offAll();
 > ```
 
-###.levels
+### .levels
 > This is simply an exposed object that allows you to explicitly reference a context level and contains the following keys you can use when leveraging the `.send()` function above:
 
 > * iframe
@@ -149,7 +149,7 @@ Once created you have access to the following functions on the object:
 
 > **NOTE** - Iframe shim is an intermediary iframe intended for use for extensions that cannot load iframes on a page due to CSP (content security policy) preventing it on page, regardless of manifest settings. This allows you to load an iframe from chrome-extension:// that just loads another iframe within to your intended SRC. The iframe_shim level lets messages flow properly from the child iframe up to the content scripts (and further up the context)
 
-###.mockSend( msg_type, data )
+### .mockSend( msg_type, data )
 > This function allows you to send a mock event to the relay as if it had received an incoming event from a different level. This is useful for building tests for applications that leverage the message relay and depend on it's functionality. 
 
 > `msg_type` _(string)_ name of the message you wish to call bound listeners for
@@ -166,7 +166,7 @@ Specific Tab Channels
 
 In many cases you may be sending a message down to a content, page, iframe, or iframe_shim context from the extension background. The message relay will, by default, broadcast the message across all tabs so any registered listeners in your namespace can receive/forward the message. Sometimes this is desired, but not always. To broadcast a message from the extension context down to a specific tab channel, you can use a special exposed function on the message relay when specifying the destination level to indicate the tab ID you wish to broadcast to. This function is detailed below:
 
-###.levelViaTabId( level, tab.id )
+### .levelViaTabId( level, tab.id )
 > An example of using this from the extension context, to send the message only through the currently active tab channel is:
 > ```javascript
 > var relay = chrome_extension_message_relay( "myextension.relay_namespace", "extension" );
@@ -182,7 +182,7 @@ In many cases you may be sending a message down to a content, page, iframe, or i
 
 A useful utility function exists to help you get the tab information for the last received message (often useful if you want to leverage the levelViaTabId function above to communicate directly back to that tab). The function is:
 
-###.getLastMsgSenderInfo()
+### .getLastMsgSenderInfo()
 > This function returns the tab that last communicated with the extension. So an example of responding directly back would be:
 
 > ```javascript
@@ -206,4 +206,3 @@ Development on the package takes place in _/dev/message_relay.dev.js_. There is 
 If the test/dev version of the relay is included on a page and you try to create a relay with it for any level other than _test_, a `ChromeExtensionMessageRelayError` will be thrown on the page and the relay will not function
 
 To run the full test suite, package the relay for districution, and run some sanity tests on the packaged build, you can run `gulp build` in the command line from the root dir of the package.
-
