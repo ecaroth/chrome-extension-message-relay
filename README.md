@@ -110,6 +110,17 @@ Once created you have access to the following functions on the object:
 > my_relay.send( "save", my_relay.levels.extension, {foo:"bar"} );
 > ```
 
+### .localSend( msg_type, data )
+> This function allows a relay to send a message to any listeners in the current level, and does not relay to other leves. Useful for local "event bus" style communication between components.
+
+> `msg_type` _(string)_ name of the message you wish to send or (array) or multiple message types
+
+> `data` _(JSON serializable object)_ data to send along with the message
+
+> ```javascript
+> my_relay.localSend( "save", {foo:"bar"} );
+> ```
+
 ### .off( msg_type )
 > This function allows you to unbind msg type listeners from this relay, or all message types in a namespace for this relay.
 

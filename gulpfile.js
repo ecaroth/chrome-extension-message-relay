@@ -26,7 +26,7 @@ gulp.task('build', function(cb) {
 //build minified version of notest version and add attribution
 gulp.task("build_prod", function(){
 	return gulp.src("dev/message_relay.notest.js")
-	  .pipe( uglify({mangle:true,preserveComments:false,compress:true}) )
+	  .pipe( uglify({mangle:true ,compress:true}) )
 	  .pipe( insert.prepend(ATTIBUTION) )
 	  .pipe( rename("message_relay.prod.js") )
 	  .pipe( gulp.dest('dist') );
@@ -77,9 +77,7 @@ gulp.task('test', [], function(){
   	.pipe(mocha({
       reporter:'spec',
       fullTrace: true,
-      compilers: {
-          js: require('babel-core/register')
-      }
+      compilers: 'js:babel-core/register'
     }))
   	.on("error", function(err) {
   		console.log(err.toString());

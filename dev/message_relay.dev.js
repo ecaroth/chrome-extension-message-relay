@@ -326,7 +326,7 @@
 
         //fn to mock an incoming message to the relay (as if incoming from a different level) - useful for testing 
         //funcitonality tied to bound listeners in applications that use the relay
-        function _mock_send_msg( msg_type, data ){
+        function _local_send_msg( msg_type, data ){
             let _msg = _get_msg( msg_type, level, true, data );
             _msg.msg_from = 'mock';
             _incoming_message( _msg, null, {tabId: 999} );
@@ -428,20 +428,21 @@
 
 
         return {
-            levels: LEVELS,            //get list of available levels
-            on: _bind,                  //bind listener for msg event
-            off: _unbind,               //unbind listener for msg event
-            offAll: _unbind_all,        //unbind all listeners at this level
-            send: _send_msg,            //send message to specific level(s)
-            levelViaTabId: _level_via_tab_id,   //send message to specific level (on tabId channel only)
-            getLastMsgSenderInfo: () => {       //get the sender info for last received message
+            levels: LEVELS,             // Get list of available levels
+            on: _bind,                  // Bind listener for msg event
+            off: _unbind,               // Unbind listener for msg event
+            offAll: _unbind_all,        // Unbind all listeners at this level
+            send: _send_msg,            // Send message to specific level(s)
+            levelViaTabId: _level_via_tab_id,   // Send message to specific level (on tabId channel only)
+            getLastMsgSenderInfo: () => {       // Get the sender info for last received message
                 return last_sender_info; 
             },
-            getLastMsgType: () => {             //get the msg type for last received message
+            getLastMsgType: () => {             // Get the msg type for last received message
                 return last_msg_type; 
             },
-            mockSend: _mock_send_msg    //mock an incoming message to this level, useful for testing apps that use script
-            , test: test_functions      //functionality exposed only for testing purposes                               /*REM*/
+            mockSend: _local_send_msg,   // Mock an incoming message to this level, useful for testing apps that use script
+            localSend: _local_send_msg   // Fire event to a local listener (on this level)
+            , test: test_functions      // Functionality exposed only for testing purposes                               /*REM*/
         };
     };
 
