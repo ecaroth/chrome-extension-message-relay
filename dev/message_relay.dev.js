@@ -261,7 +261,7 @@
                 if(level === LEVELS.test && typeof test_response === 'function'){                      /*REM*/
                     test_response("call_listener", msg);                                                /*REM*/
                 }else{                                                                                  /*REM*/
-                    _call_bound_listeners( msg_type, msg_data, sender, responder );
+                    _call_bound_listeners( msg_type, msg_data, responder );
                 }                                                                                       /*REM*/
             }else{
                 //message still bubbling up/down.. just relay if needed
