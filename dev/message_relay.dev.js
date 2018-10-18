@@ -409,6 +409,7 @@
             if( [LEVELS.page,LEVELS.content,LEVELS.iframe,LEVELS.iframe_shim].indexOf(level) !== -1  ){
                 //this relay is in the page, content, or iframe level so setup listener for postmessage calls
                 window.addEventListener('message', function(event){
+                    // IGNORE stuff that isn't part of relay traffic, for this namespace
                     if(typeof event.data === 'object' && 'msg_namespace' in event.data && (event.data.msg_namespace === msg_namespace)){
                         _incoming_message( event.data );
                     }
@@ -419,7 +420,10 @@
                 try{
                     chrome.runtime.onMessage.addListener(
                         function(msg, sender, sendResponse) {
-                            _incoming_message( msg, sendResponse, sender );
+                            // IGNORE stuff that isn't part of relay traffic, for this namespace
+                            if(typeof msg === 'object' && 'msg_namespace' in msg && (msg.msg_namespace === msg_namespace)){
+                                _incoming_message( msg, sendResponse, sender );
+                            }
                         }
                     );
                 }catch(e){}
