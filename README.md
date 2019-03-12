@@ -216,4 +216,4 @@ Development on the package takes place in _/dev/message_relay.dev.js_. There is 
 
 If the test/dev version of the relay is included on a page and you try to create a relay with it for any level other than _test_, a `ChromeExtensionMessageRelayError` will be thrown on the page and the relay will not function
 
-To run the full test suite, package the relay for districution, and run some sanity tests on the packaged build, you can run `gulp build` in the command line from the root dir of the package.
+To run the full test suite, package the relay for distribution, and run some sanity tests on the packaged build, you can run `gulp build` in the command line from the root dir of the package.

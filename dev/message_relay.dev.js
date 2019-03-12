@@ -424,6 +424,7 @@
                             if(typeof msg === 'object' && 'msg_namespace' in msg && (msg.msg_namespace === msg_namespace)){
                                 _incoming_message( msg, sendResponse, sender );
                             }
+                            return true;
                         }
                     );
                 }catch(e){}
