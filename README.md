@@ -1,7 +1,7 @@
 # Chrome Extension Message Relay
 
 
-A message relay class to make development of Chrome Extensions faster and easier by exposing a dead-simple communication interface between context levels (iframe, page, content scripts, background scripts). The script leverages a combination of [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage) and [window.postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window.postMessage) to facilitate this communication.
+A message relay class to make development of Chrome Extensions faster and easier by exposing a dead-simple communication interface between context levels (iframe, page, content scripts, background scripts). The script leverages a combination of [Chrome Message Passing](https://developer.chrome.com/apps/messaging) and [window.postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window.postMessage) to facilitate this communication.
 
 *Authored by* [Evan Carothers](https://github.com/ecaroth)
 
@@ -93,7 +93,7 @@ Once created you have access to the following functions on the object:
 > });
 >```
 
-### .send( msg_type, destination, data, cb )
+### .send( msg_type, destination, data )
 > This function allows a relay to send a message to a specific destination level, which will be intercepted by any listeners at that context level.
 
 > `msg_type` _(string)_ name of the message you wish to send or (array) or multiple message types
@@ -101,10 +101,6 @@ Once created you have access to the following functions on the object:
 > `destination` _(string)_ the destination level (one of the enum levels listed below) or a level/tab.id combo (see [_specific tab channels_](#specific-tab-channels) below)
 
 > `data` _(JSON serializable object)_ data to send along with the message
-
-> `cb` _(function)_ callback function that can be used by the listener to respond to the message directly. 
-
-> **NOTE** the responder callback functionality only works when sending communications between a content script and a background script, as it leverages [chrome.runtime.sendMessage](https://developer.chrome.com/extensions/runtime#method-sendMessage), and generally this functionality is not commonly needed.
 
 > ```javascript
 > my_relay.send( "save", my_relay.levels.extension, {foo:"bar"} );

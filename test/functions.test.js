@@ -82,7 +82,7 @@ describe("Individual internal functions", function(){
 	describe("_call_bound_listeners", function(){
 		var _call_bound_listeners = RELAY.test.token('_call_bound_listeners');
 
-		it("bound listeners get called correctly with no responder", function(done){
+		it("bound listeners get called correctly ", function(done){
 			var edata = {foo:"bar"};
 			function cb(data){
 				expect(data).to.eql(edata);
@@ -90,18 +90,6 @@ describe("Individual internal functions", function(){
 			}
 			_set_listeners({'baz': [{fn:cb, ns:null}]});
 			_call_bound_listeners( 'baz', edata );
-		});
-
-		it("bound listeners get called correctly with responder", function(done){
-			var edata = {foo:"bar"};
-			function eresp(){};
-			function cb(data, resp){
-				expect(data).to.eql(edata);
-				expect(resp).to.be(eresp);
-				done();
-			}
-			_set_listeners({'baz': [{fn:cb, ns:null}]});
-			_call_bound_listeners( 'baz', edata, eresp );
 		});
 	});
 
