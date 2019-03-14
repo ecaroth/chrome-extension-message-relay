@@ -193,7 +193,6 @@
                 if(level === LEVELS.test){                                                              /*REM*/
                     if(typeof test_response === 'function') test_response("content_up", data);          /*REM*/
                 }else{                                                                                  /*REM*/
-                    console.log("SENDING UP", content_script_connect_port);
                     content_script_connect_port.postMessage( data );
                 }                                                                                       /*REM*/
             }else{
