@@ -251,7 +251,6 @@
 
             content_scripts_ready[tab_id] = {
                 push: (data) => {
-                    console.log("POSTING", data);
                     port.postMessage(data);
                 }
             };
