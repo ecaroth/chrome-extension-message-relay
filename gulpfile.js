@@ -17,8 +17,10 @@ gulp.task('build', function(cb) {
   runSequence(
   	'lint:dev',
   	'remove_test_deps_and_build',
+    'remove_test_deps_and_build_module',
   	'lint:notest',
   	'build_prod',
+    'build_prod_module',
     'test',
     cb);
 });
@@ -32,6 +34,19 @@ gulp.task("build_prod", function(){
 	  .pipe( gulp.dest('dist') );
 });
 
+//build minified version of notest version and add attribution
+gulp.task("build_prod_module", function(){
+  return gulp.src("dev/message_relay.notest.module.js")
+    .pipe( uglify({mangle: true , compress: true}) )
+    .pipe( insert.prepend(ATTIBUTION) )
+    .pipe( insert.append('export {relay};') )
+    .pipe( rename("message_relay.prod.module.js") )
+    .pipe( gulp.dest('dist') );
+});
+
+gulp.task("build_as_module", function(){
+  return gulp.src()
+})
 
 //build task to remove test functionaity from script
 gulp.task("remove_test_deps_and_build", function(){
@@ -39,6 +54,15 @@ gulp.task("remove_test_deps_and_build", function(){
   return gulp.src("dev/message_relay.dev.js")
     .pipe( strip_line([ /\/\*REM\*\// ]) )
     .pipe( rename("message_relay.notest.js") )
+    .pipe( gulp.dest('dev') );
+});
+
+//build task to remove test functionaity from script
+gulp.task("remove_test_deps_and_build_module", function(){
+  return gulp.src("dev/message_relay.dev.js")
+    .pipe( strip_line([ /\/\*REM\*\// ]) )
+    .pipe( strip_line([ /\/\*REM_MODULE\*\// ]) )
+    .pipe( rename("message_relay.notest.module.js") )
     .pipe( gulp.dest('dev') );
 });
 
