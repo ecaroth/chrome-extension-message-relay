@@ -21,6 +21,7 @@
   "bugs": {
     "url": "https://github.com/ecaroth/chrome-extension-message-relay/issues"
   },
+  "types": "./dist/message_relay.prood.moodule.d.ts",
   "homepage": "https://github.com/ecaroth/chrome-extension-message-relay",
   "devDependencies": {
     "babel-core": "^6.26.3",
@@ -49,6 +50,7 @@
     "node": ">=0.8.0"
   },
   "dependencies": {
-    "babel-polyfill": "^6.26.0"
+    "babel-polyfill": "^6.26.0",
+    "tern": "^0.24.1"
   }
 }
