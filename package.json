@@ -21,7 +21,6 @@
   "bugs": {
     "url": "https://github.com/ecaroth/chrome-extension-message-relay/issues"
   },
-  "types": "types.d.ts",
   "homepage": "https://github.com/ecaroth/chrome-extension-message-relay",
   "devDependencies": {
     "babel-core": "^6.26.3",
