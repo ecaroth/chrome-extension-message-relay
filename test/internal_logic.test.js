@@ -1,13 +1,21 @@
 "use strict";
 
 var expect = require('expect.js'),
-	chrome_extension_message_relay = require('../dev/message_relay.dev.js');
+	chrome_extension_message_relay = require('../build/message_relay.build.test.js').relay;
 
 //This suite tests some of the internal logic of the chrome extension message relay
 
 describe("Internal logic", function(){
 	
-	var RELAY = chrome_extension_message_relay( "test.namespace", "test" );
+	var RELAY;
+
+	beforeEach(() => {
+		RELAY = chrome_extension_message_relay( "test.namespace", "test" );
+	});
+
+	afterEach(() => {
+		RELAY.clearTMO();
+	})
 
 	describe("Mock message functionality", function(){
 		//This test verifies that messages passed into the relay to mock behavior (i.e. when testing an app
@@ -35,8 +43,7 @@ describe("Internal logic", function(){
 
 		//test the logic behind receiving/storing new messages in the hash and the logic to clear
 		//it in intervals
-		var _setup_received_msg_clean_interval = RELAY.test.token("_setup_received_msg_clean_interval"),
-			orig_tmo_secs = RELAY.test.token("received_msg_clean_interval_secs");
+		var _setup_received_msg_clean_interval, orig_tmo_secs;
 
 		function _get_received_messages(){
 			return RELAY.test.token("received_messages");
@@ -48,17 +55,11 @@ describe("Internal logic", function(){
 			RELAY.test.setRecMsg({});
 		});
 
-		after(function(){
-			RELAY.test.clearTMO();
-			RELAY.test.setTMOsecs(orig_tmo_secs);
-			_setup_received_msg_clean_interval();
-		});
-
 		it("cache cleaning works over multiple intervals", function( done ){
 			this.timeout(4000);
 			expect(_get_received_messages()).to.eql({});
 			//stop the tmo so we can do setup
-			RELAY.test.clearTMO();
+			RELAY.clearTMO();
 
 			//set some that should NOT be deleted to mimic some coming in during this interval
 			//and some existing that are pending deletion on the next interval
@@ -67,10 +68,11 @@ describe("Internal logic", function(){
 			expect(_get_received_messages()).to.eql(received);
 			
 			//now restart the interval and watch behavior
-			_setup_received_msg_clean_interval();
+			RELAY.test.token("_setup_received_msg_clean_interval")();
+
 			setTimeout(function(){
-				//should have hit first interval and deleted those that were marked for it and
-				//marked those from the last round
+				// should have hit first interval and deleted those that were marked for it and
+				// marked those from the last round
 				var m = _get_received_messages();
 				expect(m.foo).to.be(1);
 				expect(m.bar).to.be(1);

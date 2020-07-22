@@ -1,7 +1,7 @@
 "use strict";
 
 var expect = require('expect.js'),
-	chrome_extension_message_relay = require('../dev/message_relay.dev.js');
+	chrome_extension_message_relay = require('../build/message_relay.build.test.js').relay;
 
 //This suite tests each individual internal function of the chrome extension message relay class
 //to ensure expeted functionality. NOTE this tests ALL internal functions, not just those exposed and
@@ -12,7 +12,15 @@ var expect = require('expect.js'),
 
 describe("Individual internal functions", function(){
 
-	var RELAY = chrome_extension_message_relay( "test", "test" );
+	var RELAY;
+
+	beforeEach(() => {
+		RELAY = chrome_extension_message_relay("test", "test");
+	});
+
+	afterEach(() => {
+		RELAY.clearTMO();
+	});
 
 	function _get_listeners(){
 		return RELAY.test.getListeners();
@@ -35,20 +43,18 @@ describe("Individual internal functions", function(){
 	}
 
 	describe("_incoming_message", function(){
-		var _incoming_message = RELAY.test.token('_incoming_message');
+		var _incoming_message;
 		var resp = null;
 
 		beforeEach(function(){
+			_incoming_message = RELAY.test.token('_incoming_message');
 			resp = null;
-		});
-
-		before(function(){
 			RELAY.test.setResponseFn(function( rtype, msg ){
 				resp = { rtype: rtype, msg: msg };
 			});
 		});
 
-		after(function(){
+		afterEach(function(){
 			RELAY.test.setResponseFn( null );
 		});
 
@@ -80,7 +86,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe("_call_bound_listeners", function(){
-		var _call_bound_listeners = RELAY.test.token('_call_bound_listeners');
+		var _call_bound_listeners;
+
+		beforeEach(() => {
+			_call_bound_listeners = RELAY.test.token('_call_bound_listeners');
+		})
 
 		it("bound listeners get called correctly ", function(done){
 			var edata = {foo:"bar"};
@@ -94,7 +104,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe("_get_mtype_info", function(){
-		var _get_mtype_info = RELAY.test.token('_get_mtype_info');
+		var _get_mtype_info;
+
+		beforeEach(() => {
+			_get_mtype_info = RELAY.test.token('_get_mtype_info');
+		})
 
 		it("type and namespace are parsed", function(){
 			var mt = _get_mtype_info("foo.bar");
@@ -117,11 +131,15 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_setup_received_msg_clean_interval', function(){
-		var _setup_received_msg_clean_interval = RELAY.test.token('_setup_received_msg_clean_interval');
+		var _setup_received_msg_clean_interval;
+
+		beforeEach(() => {
+			_setup_received_msg_clean_interval = RELAY.test.token('_setup_received_msg_clean_interval');
+		})
 
 		it("calling funciton sets TMO interval", function(){
 			//clear existing
-			RELAY.test.clearTMO();
+			RELAY.clearTMO();
 			var tmo = RELAY.test.token('received_msg_clean_tmo');
 			expect(tmo).to.be.null;
 			_setup_received_msg_clean_interval();
@@ -131,7 +149,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_unbind_namspace_listeners_for_message_type', function(){
-		var _unbind_namspace_listeners_for_message_type = RELAY.test.token('_unbind_namspace_listeners_for_message_type');
+		var _unbind_namspace_listeners_for_message_type;
+
+		beforeEach(() => {
+			_unbind_namspace_listeners_for_message_type = RELAY.test.token('_unbind_namspace_listeners_for_message_type');
+		});
 
 		it("unbinds listener for specific mtype and namespace", function(){
 			_set_listeners({
@@ -146,16 +168,17 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_relay_from_to_level', function(){
-		var _relay_from_to_level = RELAY.test.token('_relay_from_to_level');
+		var _relay_from_to_level;
 		var last_relay = null;
 
-		before(function(){
+		beforeEach(() => {
+			_relay_from_to_level = RELAY.test.token('_relay_from_to_level');
 			RELAY.test.setResponseFn(function( relay_type, data ){
 				last_relay = {type: relay_type, data: data};
 			});
 		});
 
-		after(function(){
+		afterEach(() => {
 			RELAY.test.setResponseFn(null);
 		});
 
@@ -266,30 +289,33 @@ describe("Individual internal functions", function(){
 	});
 		
 	describe('_level_via_tab_id', function(){
-		var _level_via_tab_id = RELAY.test.token('_level_via_tab_id');
 
 		it("formats destination w/ tab ID", function(){
-			var lvl = _level_via_tab_id(RELAY.levels.test, 1234);
+			var lvl = RELAY.test.token('_level_via_tab_id')(RELAY.levels.test, 1234);
 			expect(lvl).to.be("test@1234");
 		});
 	});
 	
 	describe('_get_msg', function(){
-		var _get_msg = RELAY.test.token('_get_msg');
+		var _get_msg;
+
+		beforeEach(() => {
+			_get_msg = RELAY.test.token('_get_msg');
+		});
 
 		it("msg object is created correctly", function(){
-			var msg = _get_msg( "foobar", RELAY.levels.page, true, {biz:"baz"} );
+			var msg = _get_msg( "foobar", RELAY.levels.page, 'test', true, {biz:"baz"} );
 			expect(msg.msg_type).to.be("foobar");
 			expect(msg.msg_from).to.be("test");
 			expect(msg.msg_destination).to.be(RELAY.levels.page);
 			expect(msg.msg_up).to.be(true);
 			expect(msg.msg_id).to.not.be.null;
 			expect(msg.msg_tab_id).to.be.null;
-			expect(msg.msg_data).to.eql({biz:"baz",msg_id:msg.msg_id});
+			expect(msg.msg_data).to.eql({biz:"baz", msg_id:msg.msg_id});
 		});
 
 		it("msg object preserves msg_id", function(){
-			var msg = _get_msg( "foobar", RELAY.levels.page, true, {biz:"baz",msg_id:"foobar"} );
+			var msg = _get_msg( "foobar", RELAY.levels.page, 'test', true, {biz:"baz",msg_id:"foobar"} );
 			expect(msg.msg_id).to.be("foobar");
 		});
 
@@ -301,7 +327,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_bind', function(){
-		var _bind = RELAY.test.token('_bind');
+		var _bind;
+
+		beforeEach(() => {
+			_bind = RELAY.test.token('_bind');
+		});
 
 		beforeEach(function(){
 			RELAY.test.token('_unbind_all')();
@@ -377,9 +407,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_unbind_all', function(){
-		var _unbind_all = RELAY.test.token('_unbind_all');
+		var _unbind_all;
 
 		beforeEach(function(){
+			_unbind_all = RELAY.test.token('_unbind_all');
+
 			//set some default/expected pre-bound listeners
 			_set_listeners({
 				'foo': [{fn:null, ns:null}, {fn:null, ns:'ns1'}],
@@ -404,9 +436,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_unbind', function(){
-		var _unbind = RELAY.test.token('_unbind');
+		var _unbind;
 
 		beforeEach(function(){
+			_unbind = RELAY.test.token('_unbind');
+
 			//set some default/expected pre-bound listeners
 			_set_listeners({
 				'foo': [{fn:null, ns:null}, {fn:null, ns:'ns1'}],
@@ -446,7 +480,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_is_valid_destination', function(){
-		var _is_valid_destination = RELAY.test.token('_is_valid_destination');
+		var _is_valid_destination;
+
+		beforeEach(() => {
+			_is_valid_destination = RELAY.test.token('_is_valid_destination');
+		});
 
 		it("valid levels are considered valud", function(){
 			for(var level in RELAY.levels){
@@ -460,7 +498,11 @@ describe("Individual internal functions", function(){
 	});
 
 	describe('_parse_destination', function(){
-		var _parse_destination = RELAY.test.token('_parse_destination');
+		var _parse_destination;
+
+		beforeEach(() => {
+			_parse_destination = RELAY.test.token('_parse_destination');
+		});
 
 		it("tab_id and level are parsed", function(){
 			var dest = _parse_destination("test@1234");
