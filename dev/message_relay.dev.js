@@ -436,7 +436,7 @@
         }                                                                                                               /*REM*/
         if(level === LEVELS.content || level === LEVELS.extension){
             // if specifying content level, verify this is running in an extension content or BG page to prevent spoofing
-            if(!chrome || !chrome.runtim || !chrome.runtime.id){
+            if(!chrome || !chrome.runtime || !chrome.runtime.id){
                 let msg = `ERROR - invalid context detected for ${level}, aborting.`;
                 throw new ChromeExtensionMessageRelayError(msg);
             }
