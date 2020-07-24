@@ -1,6 +1,6 @@
 {
   "name": "chrome-extension-message-relay",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "A library to work with message passing at various levels of the browser for Chrome Extensions",
   "main": "dist/message_relay.prod.module.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "test": "gulp test",
     "lint": "gulp lint",
     "lint:build": "gulp lint:build",
-    "build:local": "gulp build:local"
+    "build:local": "gulp build:local",
+    "build": "gulp build"
   },
   "repository": {
     "type": "git",
@@ -26,7 +27,7 @@
   "bugs": {
     "url": "https://github.com/ecaroth/chrome-extension-message-relay/issues"
   },
-  "types": "./dist/message_relay.prood.moodule.d.ts",
+  "types": "./dist/message_relay.prod.moodule.d.ts",
   "homepage": "https://github.com/ecaroth/chrome-extension-message-relay",
   "devDependencies": {
     "babel-core": "^6.26.3",
@@ -50,6 +51,8 @@
     "jshint-stylish": "~2.2.1",
     "npm-force-resolutions": "0.0.3",
     "run-sequence": "^2.2.1",
+    "tsc": "^1.20150623.0",
+    "typescript": "^3.9.7",
     "yargs": "^11.1.0"
   },
   "engines": {

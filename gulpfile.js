@@ -8,7 +8,8 @@ const gulp = require('gulp'),
       mocha = require('gulp-mocha'),
       insert = require('gulp-insert'),
       uglify = require('gulp-uglify-harmony'),
-      strip_line = require('gulp-strip-line');
+      strip_line = require('gulp-strip-line'),
+      exec = require('child_process').exec;
 
 const PACKAGE = require('./package.json');
 const ATTIBUTION = "/* Version "+PACKAGE.version+" "+PACKAGE.name+" ("+PACKAGE.homepage+"), Authored by "+PACKAGE.author+" */"+"\n\n";
@@ -54,17 +55,17 @@ gulp.task("build:prod", gulp.parallel(
             .pipe( uglify({mangle: true , compress: true}) )
             .pipe( insert.prepend(ATTIBUTION) )
             .pipe( rename(FNAMES.prod) )
-            .pipe( gulp.dest('dev') );
+            .pipe( gulp.dest('dist') );
     },
-    function buildNotestModule() {
+    function buildModule() {
         return gulp.src("dev/" + FNAMES.dev)
             .pipe(strip_line([/\/\*REM\*\//]))
             .pipe(strip_line([/\/\*REM_MODULE\*\//]))
             .pipe(uglify({mangle: true, compress: true}))
             .pipe(insert.prepend(ATTIBUTION))
             .pipe(insert.append('export {relay};'))
-            .pipe(rename(FNAMES.notest))
-            .pipe(gulp.dest('dev'));
+            .pipe(rename(FNAMES.prod_module))
+            .pipe(gulp.dest('dist'));
     }
 ));
 
@@ -90,33 +91,31 @@ gulp.task('lint:build', gulp.series('build:local', function(){
         });
 }));
 
-//run specific gulp test
-//NOTE - must pass in --test=<TEST_FILTER> flag!
-gulp.task('test_single', gulp.series('build:local', function(){
-  return gulp.src('test/**/*.test.js', {read: false})
-    .pipe(mocha({ignoreLeads: true, fullTrace: true, grep:argv.test}));
-}));
- 
+
 //test scripts
+// optional --test="search" arg
 gulp.task('test', gulp.series('build:local', function(){
-  return gulp.src('test/**/*.test.js', {read: false})
-  	.pipe(mocha({
-      reporter:'spec',
-      fullTrace: true,
-      compilers: 'js:babel-core/register'
-    }))
-  	.on("error", function(err) {
-  		console.log(err.toString());
-  		this.emit('end');
-  		 process.exit();
-  	})
-    .once('end', () => {
-        process.exit();
-    });
+
+    let opts = {
+        reporter:'spec',
+        fullTrace: true,
+        compilers: 'js:babel-core/register'
+    }
+    var test = argv.test;
+    if(test) opts.grep = test;
+
+    return gulp.src('test/**/*.test.js', {read: false})
+        .pipe(mocha(opts))
 }));
 
 gulp.task('build', gulp.series(
     'lint:build',
     'test',
-    'build:prod'
+    'build:prod',
+    function buildTypesFile(done){
+        let cmd = "npx tsc --allowJs --declaration --emitDeclarationOnly ./dist/"+FNAMES.prod_module;
+        return exec(cmd, function (err, stdout, stderr) {
+            done();
+        });
+    }
 ));

@@ -172,6 +172,7 @@ describe("Individual internal functions", function(){
 		var last_relay = null;
 
 		beforeEach(() => {
+			last_relay = null;
 			_relay_from_to_level = RELAY.test.token('_relay_from_to_level');
 			RELAY.test.setResponseFn(function( relay_type, data ){
 				last_relay = {type: relay_type, data: data};
@@ -238,18 +239,16 @@ describe("Individual internal functions", function(){
 			expect(last_relay.data.msg_type).to.be("foobar");
 		});
 
-		it("message from page to iframe_shim gets relayed DOWN", function(){
+		it("message from page to iframe_shim is not relayed", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.iframe_shim );
 			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
-			expect(last_relay.type).to.be("page_content_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay).to.be(null);
 		});
 
-		it("message from page to iframe gets relayed DOWN", function(){
+		it("message from page to iframe is not relayed", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.iframe );
 			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
-			expect(last_relay.type).to.be("iframe_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay).to.be(null);
 		});
 
 		it("message from page to content gets relayed UP", function(){

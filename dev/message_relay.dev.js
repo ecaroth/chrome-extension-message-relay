@@ -211,7 +211,7 @@
                     }else{                                                                              /*REM*/
                         window.parent.postMessage(data, target_domain);
                     }                                                                                   /*REM*/
-                }else if( (this_level === LEVELS.page || this_level === LEVELS.content) && data.msg_destination === LEVELS.iframe){
+                }else if( (this_level === LEVELS.page || this_level === LEVELS.content) && [LEVELS.iframe, LEVELS.iframe_shim].includes(data.msg_destination)){
                     // SECURITY NOTE - no need to relay through page, as content scripts can postmessage directly to iframes
                     // on our extension domain, and if we allow relaying through page it opens up relay entry point for non
                     // authenticated senders!
@@ -225,7 +225,7 @@
                         let iframes = document.getElementsByTagName('iframe');
                         for(let i=0; i<iframes.length; i++){
                             // If sending from content, only send the message to iframes in our extension
-                            let target = "chrome-extension://"+chrome.runtime.id
+                            let target = "chrome-extension://"+chrome.runtime.id;
                             if(!iframes[i].src.startsWith(target)) continue;
                             iframes[i].contentWindow.postMessage(data, target);
                         }
@@ -387,7 +387,9 @@
         }
         _setup_received_msg_clean_interval();
 
-        function _clear_tmo(){ clearInterval(received_msg_clean_tmo); }
+        function _clear_tmo(){
+            clearInterval(received_msg_clean_tmo);
+        }
 
         // =============== START OF TEST-ONLY FUNCTIONALITY ====================
 
@@ -409,7 +411,6 @@
         const test_functions = {                                                                                        /*REM*/
             getListeners:   () => { return _test(listeners); }, //get internal listeners obj                            /*REM*/
             setListeners:   (v) => { _is_test(); listeners=v; }, //set internal listeners obj                           /*REM*/
-            setTMOsecs:     (v) => { received_msg_clean_interval_secs = v; }, //set the tmo interval seconds            /*REM*/
             setRecMsg:      (v) => { received_messages = v; }, //set the received_messages msg_obj                      /*REM*/
             setResponseFn:  (fn) => { _is_test(); test_response=fn; }, //set test fn that is called for responses       /*REM*/
             token:          (token) => {                                                                                /*REM*/
@@ -420,20 +421,26 @@
 
 
         //create custom error class
-        function ChromeExtensionMessageRelayError(message) {                                                            /*REM*/
-            this.name = 'ChromeExtensionMessageRelayError';                                                             /*REM*/
-            this.message = message || 'Error in chrome extension message relay';                                        /*REM*/
-            this.stack = (new Error()).stack;                                                                           /*REM*/
-        }                                                                                                               /*REM*/
-        ChromeExtensionMessageRelayError.prototype = Object.create(Error.prototype);                                    /*REM*/
-        ChromeExtensionMessageRelayError.prototype.constructor = ChromeExtensionMessageRelayError;                      /*REM*/
+        function ChromeExtensionMessageRelayError(message) {
+            this.name = 'ChromeExtensionMessageRelayError';
+            this.message = message || 'Error in chrome extension message relay';
+            this.stack = (new Error()).stack;
+        }
+        ChromeExtensionMessageRelayError.prototype = Object.create(Error.prototype);
+        ChromeExtensionMessageRelayError.prototype.constructor = ChromeExtensionMessageRelayError;
 
         if(level !== LEVELS.test){                                                                                      /*REM*/
             let msg = "ERROR - you are using a version of the script intended only for dev and testing! ";              /*REM*/
             msg += "Please use the version in /dist/message_relay.prod.js";                                             /*REM*/
             throw new ChromeExtensionMessageRelayError(msg);                                                            /*REM*/
         }                                                                                                               /*REM*/
-            
+        if(level === LEVELS.content || level === LEVELS.extension){
+            // if specifying content level, verify this is running in an extension content or BG page to prevent spoofing
+            if(!chrome || !chrome.runtim || !chrome.runtime.id){
+                let msg = `ERROR - invalid context detected for ${level}, aborting.`;
+                throw new ChromeExtensionMessageRelayError(msg);
+            }
+        }
 
         // =============== END OF TEST-ONLY FUNCTIONALITY ====================
 

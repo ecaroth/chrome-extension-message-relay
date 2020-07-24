@@ -62,6 +62,8 @@ In some cases for the relay to work properly, you must have created relays that 
 
 Also - relays only communicate with others that were created on the same namespace, however you can create multiple relays with different namespaces for different purposes to suit your needs, though that's a very odd use case during extension development
 
+For security, content and extension levels are verified to be running in an extension context or and error is thrown.
+Additionally messages sent to iframes must be relayed through content scripts (they are discared by page level if destination level is iframe/iframe_shim, as content scripts can postmessage directly to the iframes)
 
 API
 ------
