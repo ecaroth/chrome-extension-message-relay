@@ -4,7 +4,6 @@
   "description": "A library to work with message passing at various levels of the browser for Chrome Extensions",
   "main": "dist/message_relay.prod.module.js",
   "scripts": {
-    "preinstall": "npx npm-force-resolutions",
     "test": "gulp test",
     "lint": "gulp lint",
     "lint:build": "gulp lint:build",
@@ -15,7 +14,6 @@
     "type": "git",
     "url": "git+https://github.com/ecaroth/chrome-extension-message-relay.git"
   },
-  "resolutions": {},
   "keywords": [
     "chrome",
     "extension",
@@ -49,7 +47,6 @@
     "jsdom-global": "^3.0.2",
     "jshint": "^2.10.2",
     "jshint-stylish": "~2.2.1",
-    "npm-force-resolutions": "0.0.3",
     "run-sequence": "^2.2.1",
     "tsc": "^1.20150623.0",
     "typescript": "^3.9.7",
