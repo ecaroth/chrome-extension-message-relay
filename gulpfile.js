@@ -1,6 +1,6 @@
 "use strict";
 const gulp = require('gulp'),
-	    jshint = require('gulp-jshint'),
+    jshint = require('gulp-jshint'),
       rename = require("gulp-rename"),
       runSequence = require('run-sequence'),
       stylish = require('jshint-stylish'),
@@ -8,67 +8,71 @@ const gulp = require('gulp'),
       mocha = require('gulp-mocha'),
       insert = require('gulp-insert'),
       uglify = require('gulp-uglify-harmony'),
-      strip_line = require('gulp-strip-line');
+      strip_line = require('gulp-strip-line'),
+      exec = require('child_process').exec;
 
 const PACKAGE = require('./package.json');
 const ATTIBUTION = "/* Version "+PACKAGE.version+" "+PACKAGE.name+" ("+PACKAGE.homepage+"), Authored by "+PACKAGE.author+" */"+"\n\n";
+const FNAMES = {
+    dev: "message_relay.dev.js",
+    build: "message_relay.build.js",
+    build_module: "message_relay.build.module.js",
+    build_test_module: "message_relay.build.test.js",
+    prod: "message_relay.prod.js",
+    prod_module: "message_relay.prod.module.js"
+}
 
-gulp.task('build', function(cb) {
-  runSequence(
-  	'lint:dev',
-  	'remove_test_deps_and_build',
-    'remove_test_deps_and_build_module',
-  	'lint:notest',
-  	'build_prod',
-    'build_prod_module',
-    'test',
-    cb);
-});
+//build task to remove test functionality from script
+gulp.task("build:local", gulp.parallel(
+  function build(){
+      return gulp.src("dev/" + FNAMES.dev)
+          .pipe( strip_line([ /\/\*REM\*\// ]) )
+          .pipe( rename(FNAMES.build) )
+          .pipe( gulp.dest('build') );
+  },
+  function buildModule(){
+      return gulp.src("dev/" + FNAMES.dev)
+          .pipe( strip_line([ /\/\*REM\*\// ]) )
+          .pipe( strip_line([ /\/\*REM_MODULE\*\// ]) )
+          .pipe( insert.append('export {relay};') )
+          .pipe( rename(FNAMES.build_module) )
+          .pipe( gulp.dest('build') );
+  },
+  function buildTest(){
+        return gulp.src("dev/" + FNAMES.dev)
+            .pipe( strip_line([ /\/\*REM_MODULE\*\// ]) )
+            .pipe( insert.append('export {relay};') )
+            .pipe( rename(FNAMES.build_test_module) )
+            .pipe( gulp.dest('build') );
+    }
+));
 
-//build minified version of notest version and add attribution
-gulp.task("build_prod", function(){
-	return gulp.src("dev/message_relay.notest.js")
-	  .pipe( uglify({mangle: true , compress: true}) )
-	  .pipe( insert.prepend(ATTIBUTION) )
-	  .pipe( rename("message_relay.prod.js") )
-	  .pipe( gulp.dest('dist') );
-});
-
-//build minified version of notest version and add attribution
-gulp.task("build_prod_module", function(){
-  return gulp.src("dev/message_relay.notest.module.js")
-    .pipe( uglify({mangle: true , compress: true}) )
-    .pipe( insert.prepend(ATTIBUTION) )
-    .pipe( insert.append('export {relay};') )
-    .pipe( rename("message_relay.prod.module.js") )
-    .pipe( gulp.dest('dist') );
-});
-
-gulp.task("build_as_module", function(){
-  return gulp.src()
-})
-
-//build task to remove test functionaity from script
-gulp.task("remove_test_deps_and_build", function(){
-	//TODO - use gulp-insert to add DEVELOPED BY
-  return gulp.src("dev/message_relay.dev.js")
-    .pipe( strip_line([ /\/\*REM\*\// ]) )
-    .pipe( rename("message_relay.notest.js") )
-    .pipe( gulp.dest('dev') );
-});
-
-//build task to remove test functionaity from script
-gulp.task("remove_test_deps_and_build_module", function(){
-  return gulp.src("dev/message_relay.dev.js")
-    .pipe( strip_line([ /\/\*REM\*\// ]) )
-    .pipe( strip_line([ /\/\*REM_MODULE\*\// ]) )
-    .pipe( rename("message_relay.notest.module.js") )
-    .pipe( gulp.dest('dev') );
-});
+//build task to remove test functionality from script
+gulp.task("build:prod", gulp.parallel(
+    function buildNotest(){
+        return gulp.src("dev/" + FNAMES.dev)
+            .pipe( strip_line([ /\/\*REM\*\// ]) )
+            .pipe( uglify({mangle: true , compress: true}) )
+            .pipe( insert.prepend(ATTIBUTION) )
+            .pipe( rename(FNAMES.prod) )
+            .pipe( gulp.dest('dist') );
+    },
+    function buildModule() {
+        return gulp.src("dev/" + FNAMES.dev)
+            .pipe(strip_line([/\/\*REM\*\//]))
+            .pipe(strip_line([/\/\*REM_MODULE\*\//]))
+            .pipe(uglify({mangle: true, compress: true}))
+            .pipe(insert.prepend(ATTIBUTION))
+            .pipe(insert.append('export {relay};'))
+            .pipe(rename(FNAMES.prod_module))
+            .pipe(gulp.dest('dist'));
+    }
+));
 
 
-gulp.task('lint:notest', function(){
-  return gulp.src('dev/message_relay.notest.js')
+
+gulp.task('lint', function(){
+  return gulp.src('dev/' + FNAMES.dev)
     .pipe( jshint() )
     .pipe(jshint.reporter(stylish))
     .pipe(jshint.reporter('fail'))
@@ -77,38 +81,41 @@ gulp.task('lint:notest', function(){
     });
 });
 
+gulp.task('lint:build', gulp.series('build:local', function(){
+    return gulp.src('build/' + FNAMES.build)
+        .pipe(jshint())
+        .pipe(jshint.reporter(stylish))
+        .pipe(jshint.reporter('fail'))
+        .once('error', () => {
+            process.exit(1);
+        });
+}));
 
-gulp.task('lint:dev', function(){
-  return gulp.src('dev/message_relay.dev.js')
-    .pipe( jshint() )
-    .pipe(jshint.reporter(stylish))
-    .pipe(jshint.reporter('fail'))
-    .once('error', () => {
-        process.exit(1);
-    });
-});
 
-//run specific gulp test
-//NOTE - must pass in --test=<TEST_FILTER> flag!
-gulp.task('test_single', ['lint'], function(){
-  return gulp.src('test/**/*.test.js', {read: false})
-    .pipe(mocha({ignoreLeads: true, fullTrace: true, grep:argv.test}));
-});
- 
 //test scripts
-gulp.task('test', [], function(){
-  return gulp.src('test/**/*.test.js', {read: false})
-  	.pipe(mocha({
-      reporter:'spec',
-      fullTrace: true,
-      compilers: 'js:babel-core/register'
-    }))
-  	.on("error", function(err) {
-  		console.log(err.toString());
-  		this.emit('end');
-  		 process.exit();
-  	})
-    .once('end', () => {
-        process.exit();
-    });
-});
+// optional --test="search" arg
+gulp.task('test', gulp.series('build:local', function(){
+
+    let opts = {
+        reporter:'spec',
+        fullTrace: true,
+        compilers: 'js:babel-core/register'
+    }
+    var test = argv.test;
+    if(test) opts.grep = test;
+
+    return gulp.src('test/**/*.test.js', {read: false})
+        .pipe(mocha(opts))
+}));
+
+gulp.task('build', gulp.series(
+    'lint:build',
+    'test',
+    'build:prod',
+    function buildTypesFile(done){
+        let cmd = "npx tsc --allowJs --declaration --emitDeclarationOnly ./dist/"+FNAMES.prod_module;
+        return exec(cmd, function (err, stdout, stderr) {
+            done();
+        });
+    }
+));

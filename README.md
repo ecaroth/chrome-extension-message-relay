@@ -62,6 +62,8 @@ In some cases for the relay to work properly, you must have created relays that 
 
 Also - relays only communicate with others that were created on the same namespace, however you can create multiple relays with different namespaces for different purposes to suit your needs, though that's a very odd use case during extension development
 
+For security, content and extension levels are verified to be running in an extension context or and error is thrown.
+Additionally messages sent to iframes must be relayed through content scripts (they are discared by page level if destination level is iframe/iframe_shim, as content scripts can postmessage directly to the iframes)
 
 API
 ------
@@ -70,9 +72,10 @@ You can create a new message relay at the desired level by instantiating it, pas
 
 ```javascript		
 var relay = chrome_extension_message_relay(
-    my_relay_namespace, //string
-    current_level, //string enum(page|content|extension|iframe|iframe_shim)
-    debug_mode //boolean, default false 
+    my_relay_namespace, // string
+    current_level, // string enum(page|content|extension|iframe|iframe_shim)
+    debug_mode // boolean, default false,
+    target_domain // string (postMessage domain target), only used for iframe/iframe_shim level calls to limit target domain for PostMessage
 );
 ```
         
@@ -80,12 +83,14 @@ Once created you have access to the following functions on the object:
 
 
 
-### .on( msg_type, cb )
+### .on( msg_type, cb, allowed_source_levels )
 > This function gives the ability to listen for incoming messages to this context level (from any other level) and execute a callback when the message is received. The bound listener executes each time the message is incoming, and stays bound until the relay is destroyed.
 
 > `msg_type` _(string)_ name of the message you want to listen for or (array) of multiple message type strings. Note message types can be namespaced in the format 'msg_type.namespace', else left in the global namspeace
 
 >`cb` _(function)_ callback function when message is received, takes 1 argument which is incoming message data (object)
+
+>`allowed_source_levels` _string or array, optional_ list of levels for origin source to allow. Note that this does not work in all cases, but is primarily designed to use in background to limit message callbacks as from content scripts only (vs contexts further down the page)
 
 > ```javascript
 > my_relay.on( "save.user_action", function(data){
