@@ -494,5 +494,11 @@
             };
     };
 
-    window.chrome_extension_message_relay = relay;          /*REM_MODULE*/
+    if (('undefined' !== typeof module) && module.exports) {    /*REM_MODULE*/
+        //publish for node                                       /*REM_MODULE*/
+        module.exports = relay;                                  /*REM_MODULE*/
+    }else{                                                      /*REM_MODULE*/
+        //publish for browser/extension                         /*REM_MODULE*/
+        window.chrome_extension_message_relay = relay;          /*REM_MODULE*/
+    }                                                           /*REM_MODULE*/
 })(); /*REM_MODULE*/
