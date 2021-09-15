@@ -7,7 +7,7 @@ const gulp = require('gulp'),
       argv = require('yargs').argv,
       mocha = require('gulp-mocha'),
       insert = require('gulp-insert'),
-      uglify = require('gulp-uglify-harmony'),
+      uglify = require('gulp-uglify-es').default,
       strip_line = require('gulp-strip-line'),
       exec = require('child_process').exec;
 
