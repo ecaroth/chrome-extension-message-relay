@@ -205,7 +205,7 @@
                 }                                                                                       /*REM*/
             }else{
                 //no interaction with extension background, broadcast UP w/ postmessage so content/page can receive
-                if( this_level === LEVELS.iframe || this_level === LEVELS.iframe_shim ) { 
+                if( this_level === LEVELS.iframe || (data.msg_destination !== LEVELS.iframe && this_level === LEVELS.iframe_shim)) {
                     if(level === LEVELS.test){                                                          /*REM*/
                         if(typeof test_response === 'function') test_response("iframe_up", data);       /*REM*/
                     }else{                                                                              /*REM*/
@@ -231,14 +231,22 @@
                         }
                     }                                                                                   /*REM*/
                 }else{
-                    // communication between content and page directly (UP or DOWN) or from content to iframe_shim
+                    // communication between content and page directly (UP or DOWN) or from content to iframe_shim or iframe_shim to iframe
                     if(level === LEVELS.test){                                                          /*REM*/
                         if(typeof test_response === 'function'){                                        /*REM*/
                             test_response("page_content_"+(data.msg_up ? 'up' : 'down'), data);         /*REM*/
                         }                                                                               /*REM*/
                     }else{                                                                              /*REM*/
                         // determine target and set targetOrigin appropriately
-                        window.postMessage(data, "*");
+                        if(data.msg_destination !== LEVELS.iframe && this_level === LEVELS.iframe_shim){
+                            // sending DOWN to iframe from iframe shim
+
+                            // NOTE this makes the assumption that the ONLY element in the iframe shim is a single iframe
+                            // if more than one iframe is supported inside a shim, this will need to change
+                            if(window.frames.length) window.frames[0].postMessage(data, "*");
+                        }else {
+                            window.postMessage(data, "*");
+                        }
                     }                                                                                   /*REM*/
                 }
             }
