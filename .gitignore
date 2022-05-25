@@ -2,3 +2,4 @@ build
 node_modules
 dev/message_relay.notest.js
 .idea
+.DS_Store
