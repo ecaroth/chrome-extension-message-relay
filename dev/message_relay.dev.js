@@ -238,12 +238,14 @@
                         }                                                                               /*REM*/
                     }else{                                                                              /*REM*/
                         // determine target and set targetOrigin appropriately
-                        if(data.msg_destination !== LEVELS.iframe && this_level === LEVELS.iframe_shim){
-                            // sending DOWN to iframe from iframe shim
+                        if(data.msg_destination === LEVELS.iframe && this_level === LEVELS.iframe_shim){
+                            // sending DOWN to sub-frames from iframe shim
 
-                            // NOTE this makes the assumption that the ONLY element in the iframe shim is a single iframe
-                            // if more than one iframe is supported inside a shim, this will need to change
-                            if(window.frames.length) window.frames[0].postMessage(data, "*");
+                            // NOTE this makes the assumption that we want to post to all sub-frames within the shim
+                            // if we want to restrict which frames it is passed to, this will need to change
+                            for (let i=0; i < window.frames.length; i++) {
+                                window.frames[i].postMessage(data, "*");
+                            }
                         }else {
                             window.postMessage(data, "*");
                         }
