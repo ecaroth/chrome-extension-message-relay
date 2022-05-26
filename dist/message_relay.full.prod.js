@@ -1,8 +1,10 @@
+/* Version 2.1.2 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal 
 // functions for testing. Use the modified, minified version in /dist/message_relay.prod.js
 
-// NOTE - lines that include /*REM*/ are stripped when building production version of this script
+
 
 (() => { /*REM_MODULE*/
     "use strict";
@@ -43,7 +45,7 @@
         
         // =============== START OF TEST-ONLY VARIABLE DEFS ====================
 
-        let test_response = null;  //Response function used to validate tests in a few circumstances        /*REM*/ 
+
             
         // =============== END OF TEST-ONLY VARIABLE DEFS ====================
 
@@ -179,9 +181,9 @@
                 //broadcasting DOWN from extension to content script - percolate it to each tab using chrome.runtime port
                 //UNLESS a specific tab id is included on the request destination
                 
-                if(level === LEVELS.test){                                                              /*REM*/
-                    if(typeof test_response === 'function') test_response("extension_down", data );     /*REM*/
-                }else{                                                                                  /*REM*/
+
+
+
                     if(data.msg_tab_id){
                         content_scripts_ready[data.msg_tab_id] = content_scripts_ready[data.msg_tab_id] || [];
                         content_scripts_ready[data.msg_tab_id].push(data);
@@ -191,26 +193,26 @@
                             content_scripts_ready[tab_id].push(data);
                         }
                     }
-                }                                                                                       /*REM*/
+
             }else if( (this_level === LEVELS.content && data.msg_destination === LEVELS.extension) || this_level === LEVELS.extension ){
                 //going UP form content script to extension.. use connected runtime port
                         
-                if(level === LEVELS.test){                                                              /*REM*/
-                    if(typeof test_response === 'function') test_response("content_up", data);          /*REM*/
-                }else{                                                                                  /*REM*/
+
+
+
                     // verify that message is coming from script within your extension
                     // NOTE this will prevent external connectible messages from outside your extension,
                     // but we want that for security reasons
                     content_script_connect_port.postMessage( data );
-                }                                                                                       /*REM*/
+
             }else{
                 //no interaction with extension background, broadcast UP w/ postmessage so content/page can receive
                 if( this_level === LEVELS.iframe || (data.msg_destination !== LEVELS.iframe && this_level === LEVELS.iframe_shim)) {
-                    if(level === LEVELS.test){                                                          /*REM*/
-                        if(typeof test_response === 'function') test_response("iframe_up", data);       /*REM*/
-                    }else{                                                                              /*REM*/
+
+
+
                         window.parent.postMessage(data, target_domain);
-                    }                                                                                   /*REM*/
+
                 }else if( (this_level === LEVELS.page || this_level === LEVELS.content) && [LEVELS.iframe, LEVELS.iframe_shim].includes(data.msg_destination)){
                     // SECURITY NOTE - no need to relay through page, as content scripts can postmessage directly to iframes
                     // on our extension domain, and if we allow relaying through page it opens up relay entry point for non
@@ -219,9 +221,9 @@
 
                     //going DOWN from content to iframe, so postMessage to iframe(s) directly
 
-                    if(level === LEVELS.test){                                                          /*REM*/
-                        if(typeof test_response === 'function') test_response("iframe_down", data);     /*REM*/
-                    }else{                                                                              /*REM*/
+
+
+
                         let iframes = document.getElementsByTagName('iframe');
                         for(let i=0; i<iframes.length; i++){
                             // If sending from content, only send the message to iframes in our extension
@@ -229,14 +231,14 @@
                             if(!iframes[i].src.startsWith(target)) continue;
                             iframes[i].contentWindow.postMessage(data, target);
                         }
-                    }                                                                                   /*REM*/
+
                 }else{
                     // communication between content and page directly (UP or DOWN) or from content to iframe_shim or iframe_shim to iframe
-                    if(level === LEVELS.test){                                                          /*REM*/
-                        if(typeof test_response === 'function'){                                        /*REM*/
-                            test_response("page_content_"+(data.msg_up ? 'up' : 'down'), data);         /*REM*/
-                        }                                                                               /*REM*/
-                    }else{                                                                              /*REM*/
+
+
+
+
+
                         // determine target and set targetOrigin appropriately
                         if(data.msg_destination === LEVELS.iframe && this_level === LEVELS.iframe_shim){
                             // sending DOWN to sub-frames from iframe shim
@@ -249,7 +251,7 @@
                         }else {
                             window.postMessage(data, "*");
                         }
-                    }                                                                                   /*REM*/
+
                 }
             }
         }
@@ -306,18 +308,18 @@
                 _log( `Msg (${msg_type}) received from ${msg_from} to ${msg_destination} - ${JSON.stringify(msg_data)}` );
                 received_messages[_msg_reception_id] = 0;
 
-                if(level === LEVELS.test && typeof test_response === 'function'){                      /*REM*/
-                    test_response("call_listener", msg);                                                /*REM*/
-                }else{                                                                                  /*REM*/
+
+
+
                     _call_bound_listeners( msg_type, msg_data, source_level );
-                }                                                                                       /*REM*/
+
             }else{
                 //message still bubbling up/down.. just relay if needed
                 msg.msg_from = level;
 
-                if(level === LEVELS.test && typeof test_response === 'function'){                      /*REM*/
-                    test_response("bubble", msg);                                                       /*REM*/
-                }else{                                                                                  /*REM*/
+
+
+
                     if(msg_up && LEVEL_ORDER[level] > LEVEL_ORDER[msg_from]){
                         _relay( msg );
                         _log( `Msg (${msg_type}) relaying UP from ${msg_from} to ${msg_destination} - ${JSON.stringify(msg_data)}` );
@@ -325,7 +327,7 @@
                         _relay( msg );
                         _log( `Msg (${msg_type}) relaying DOWN ${msg_from} to ${msg_destination} - ${JSON.stringify(msg_data)}` );
                     }
-                }                                                                                       /*REM*/    
+
             }
         }
 
@@ -405,29 +407,29 @@
 
         
         //fn to check current env and throw error if we are NOT in test env
-        function _is_test(){                                                                                            /*REM*/
-            if(level !== LEVELS.test){                                                                                  /*REM*/
-                throw new ChromeExtensionMessageRelayError("Cannot call test methods @ this level!");                   /*REM*/
-            }                                                                                                           /*REM*/
-            return true;                                                                                                /*REM*/
-        }                                                                                                               /*REM*/
+
+
+
+
+
+
 
         //fn to pass in an internal token, check that we are in a test ENV, and return reference to token
-        function _test( token ){                                                                                        /*REM*/
-            _is_test();                                                                                                 /*REM*/
-            return token;                                                                                               /*REM*/
-        }                                                                                                               /*REM*/
 
-        const test_functions = {                                                                                        /*REM*/
-            getListeners:   () => { return _test(listeners); }, //get internal listeners obj                            /*REM*/
-            setListeners:   (v) => { _is_test(); listeners=v; }, //set internal listeners obj                           /*REM*/
-            setRecMsg:      (v) => { received_messages = v; }, //set the received_messages msg_obj                      /*REM*/
-            setResponseFn:  (fn) => { _is_test(); test_response=fn; }, //set test fn that is called for responses       /*REM*/
-            token:          (token) => {                                                                                /*REM*/
-                                _is_test();                                                                             /*REM*/
-                                return eval(token);                                                                     /*REM*/ // jshint ignore:line
-            } //get exposed reference to an internal fn/var                                                             /*REM*/
-        };                                                                                                              /*REM*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         //create custom error class
@@ -439,11 +441,11 @@
         ChromeExtensionMessageRelayError.prototype = Object.create(Error.prototype);
         ChromeExtensionMessageRelayError.prototype.constructor = ChromeExtensionMessageRelayError;
 
-        if(level !== LEVELS.test){                                                                                      /*REM*/
-            let msg = "ERROR - you are using a version of the script intended only for dev and testing! ";              /*REM*/
-            msg += "Please use the version in /dist/message_relay.prod.js";                                             /*REM*/
-            throw new ChromeExtensionMessageRelayError(msg);                                                            /*REM*/
-        }                                                                                                               /*REM*/
+
+
+
+
+
         if(level === LEVELS.content || level === LEVELS.extension){
             // if specifying content level, verify this is running in an extension content or BG page to prevent spoofing
             if(!chrome || !chrome.runtime || !chrome.runtime.id){
@@ -499,7 +501,7 @@
             mockSend: _local_send_msg,   // Mock an incoming message to this level, useful for testing apps that use script
             localSend: _local_send_msg,   // Fire event to a local listener (on this level)
             clearTMO: _clear_tmo
-            , test: test_functions      // Functionality exposed only for testing purposes                               /*REM*/
+
 
             };
     };

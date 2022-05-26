@@ -19,6 +19,7 @@ const FNAMES = {
     build_module: "message_relay.build.module.js",
     build_test_module: "message_relay.build.test.js",
     prod: "message_relay.prod.js",
+    prod_full: "message_relay.full.prod.js",
     prod_module: "message_relay.prod.module.js"
 }
 
@@ -55,6 +56,13 @@ gulp.task("build:prod", gulp.parallel(
             .pipe( uglify({mangle: true , compress: true}) )
             .pipe( insert.prepend(ATTIBUTION) )
             .pipe( rename(FNAMES.prod) )
+            .pipe( gulp.dest('dist') );
+    },
+    function buildFull() {
+        return gulp.src("dev/" + FNAMES.dev)
+            .pipe( strip_line([ /\/\*REM\*\// ]) )
+            .pipe( insert.prepend(ATTIBUTION) )
+            .pipe( rename(FNAMES.prod_full) )
             .pipe( gulp.dest('dist') );
     },
     function buildModule() {
