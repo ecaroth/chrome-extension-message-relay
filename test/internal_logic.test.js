@@ -10,12 +10,12 @@ describe("Internal logic", function(){
 	var RELAY;
 
 	beforeEach(() => {
-		RELAY = chrome_extension_message_relay( "test.namespace", "test" );
+		RELAY = chrome_extension_message_relay( "test.namespace", "test", true );
 	});
 
 	afterEach(() => {
 		RELAY.clearTMO();
-	})
+	});
 
 	describe("Mock message functionality", function(){
 		//This test verifies that messages passed into the relay to mock behavior (i.e. when testing an app
@@ -27,13 +27,14 @@ describe("Internal logic", function(){
 
 			function cb( data ){
 				expect(data).to.eql(payload);
-				expect(RELAY.getLastMsgType()).to.be("test");
+				expect(RELAY.getLastMsg().type).to.be('test');
+				expect(RELAY.getLastMsg().namespace).to.be('msg');
 				expect(RELAY.getLastMsgSenderInfo().tabId).to.be(999);
 				done();
 			}
 
 			RELAY.on("test.msg", cb);
-			RELAY.mockSend("test", payload);
+			RELAY.mockSend("test.msg", payload);
 		});
 
 	});
@@ -45,12 +46,12 @@ describe("Internal logic", function(){
 		//it in intervals
 		var _setup_received_msg_clean_interval, orig_tmo_secs;
 
-		function _get_received_messages(){
-			return RELAY.test.token("received_messages");
+		function _getReceivedMessages(){
+			return RELAY.test.token("_receivedMessages");
 		}
 
 		it("cache cleaning works over multiple intervals", function(){
-			expect(_get_received_messages()).to.eql({});
+			expect(_getReceivedMessages()).to.eql({});
 			//stop the tmo so we can do setup
 			RELAY.clearTMO();
 
@@ -59,19 +60,19 @@ describe("Internal logic", function(){
 			// 0 = MARK_FOR_NEXT_ROUND_DELETE, 1 = DELETE
 			var received = {'foo': 0, 'bar': 0, 'biz': 1, 'baz': 1};
 			RELAY.test.setRecMsg(received);
-			expect(_get_received_messages()).to.eql(received);
+			expect(_getReceivedMessages()).to.eql(received);
 			
 			// run 1 interval and make sure stuff marked for deletion was deleted
-			RELAY.test.token('_delete_interval()');
-			var m = _get_received_messages();
+			RELAY.test.token('_deleteInterval()');
+			var m = _getReceivedMessages();
 			expect(m.foo).to.be(1);
 			expect(m.bar).to.be(1);
 			expect('biz' in m).to.be.false;
 			expect('baz' in m).to.be.false;
 
 			// now run 1 more interval and make sure that the newly marked items for deletion were deleted
-			RELAY.test.token('_delete_interval()');
-			expect( _get_received_messages() ).to.eql({});
+			RELAY.test.token('_deleteInterval()');
+			expect( _getReceivedMessages() ).to.eql({});
 		});
 	});
 	

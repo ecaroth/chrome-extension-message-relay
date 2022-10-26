@@ -1,0 +1,40 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Extension Relay Test</title>
+</head>
+
+<body>
+<iframe src="iframe.html#ifr" style="width:100%; height:350px;"></iframe>
+<!-- <iframe src="iframe_shim.html" style="width:100%; padding:0; margin:0; height:350px"></iframe> -->
+
+
+<script type="module">
+    import {relay} from '../message_relay.build.module.js'
+    const RELAY = relay('dev', 'page', false);
+    RELAY.setComponentEnvData({
+        foo: "bar",
+        biz: "baz"
+    });
+    RELAY.registerComponentInitializedCb((compName, iframe, iframeWin) => {
+        console.log("Component Initialized:", compName, iframe, iframeWin)
+    })
+
+    setTimeout(() => {
+        RELAY.componentSend('allComponents.preReady', {data:'foo'});
+    }, 500);
+
+    RELAY.componentOn('component1.test', 'ComponentOnee', (data) => {
+        const info = RELAY.getLastMsg()
+        console.log("FROM COMPONENT", data, info);
+        // respond to JUST that component
+        RELAY.componentRespond('component1.testResponse', {it:'worked'});
+        RELAY.componentSend('filteredComponentOne', {1:'2'}, 'ComponentOne'); // send message specifically to iframe component 1
+    });
+</script>
+
+</body>
+</html>

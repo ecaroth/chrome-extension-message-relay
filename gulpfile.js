@@ -2,16 +2,19 @@
 const gulp = require('gulp'),
     jshint = require('gulp-jshint'),
       rename = require("gulp-rename"),
-      runSequence = require('run-sequence'),
+      gulpReplace = require('gulp-replace'),
+      webserver = require('gulp-webserver'),
       stylish = require('jshint-stylish'),
       argv = require('yargs').argv,
       mocha = require('gulp-mocha'),
+      mergeStream = require('merge-stream'),
       insert = require('gulp-insert'),
       uglify = require('gulp-uglify-es').default,
       strip_line = require('gulp-strip-line'),
       exec = require('child_process').exec;
 
 const PACKAGE = require('./package.json');
+const {replace} = require("event-stream");
 const ATTIBUTION = "/* Version "+PACKAGE.version+" "+PACKAGE.name+" ("+PACKAGE.homepage+"), Authored by "+PACKAGE.author+" */"+"\n\n";
 const FNAMES = {
     dev: "message_relay.dev.js",
@@ -21,32 +24,30 @@ const FNAMES = {
     prod: "message_relay.prod.js",
     prod_full: "message_relay.full.prod.js",
     prod_module: "message_relay.prod.module.js"
-}
+};
 
-//build task to remove test functionality from script
-gulp.task("build:local", gulp.parallel(
-  function build(){
-      return gulp.src("dev/" + FNAMES.dev)
-          .pipe( strip_line([ /\/\*REM\*\// ]) )
-          .pipe( rename(FNAMES.build) )
-          .pipe( gulp.dest('build') );
-  },
-  function buildModule(){
-      return gulp.src("dev/" + FNAMES.dev)
-          .pipe( strip_line([ /\/\*REM\*\// ]) )
-          .pipe( strip_line([ /\/\*REM_MODULE\*\// ]) )
-          .pipe( insert.append('export {relay};') )
-          .pipe( rename(FNAMES.build_module) )
-          .pipe( gulp.dest('build') );
-  },
-  function buildTest(){
-        return gulp.src("dev/" + FNAMES.dev)
-            .pipe( strip_line([ /\/\*REM_MODULE\*\// ]) )
-            .pipe( insert.append('export {relay};') )
-            .pipe( rename(FNAMES.build_test_module) )
-            .pipe( gulp.dest('build') );
-    }
-));
+function build_local() {
+    return mergeStream(
+        gulp.src("dev/" + FNAMES.dev)
+            .pipe(strip_line([/\/\*REM\*\//]))
+            .pipe(rename(FNAMES.build))
+            .pipe(gulp.dest('build')),
+        gulp.src("dev/" + FNAMES.dev)
+            .pipe(strip_line([/\/\*REM\*\//]))
+            .pipe(strip_line([/\/\*REM_MODULE\*\//]))
+            .pipe(gulpReplace("/* MODULE_EXPORTS */", "export const relay = "))
+            .pipe(rename(FNAMES.build_module))
+            .pipe(gulp.dest('build')),
+        gulp.src("dev/" + FNAMES.dev)
+            .pipe(strip_line([/\/\*REM_MODULE\*\//]))
+            .pipe(gulpReplace('})(this);', '})(window);'))
+            .pipe(gulpReplace("/* MODULE_EXPORTS */", "export const relay = "))
+            .pipe(rename(FNAMES.build_test_module))
+            .pipe(gulp.dest('build')),
+        gulp.src('test/pages/**/*')
+            .pipe(gulp.dest('build/pages'))
+    )
+}
 
 //build task to remove test functionality from script
 gulp.task("build:prod", gulp.parallel(
@@ -81,7 +82,7 @@ gulp.task("build:prod", gulp.parallel(
 
 gulp.task('lint', function(){
   return gulp.src('dev/' + FNAMES.dev)
-    .pipe( jshint() )
+    .pipe(jshint())
     .pipe(jshint.reporter(stylish))
     .pipe(jshint.reporter('fail'))
     .once('error', () => {
@@ -89,7 +90,7 @@ gulp.task('lint', function(){
     });
 });
 
-gulp.task('lint:build', gulp.series('build:local', function(){
+gulp.task('lint:build', gulp.series(build_local, function(){
     return gulp.src('build/' + FNAMES.build)
         .pipe(jshint())
         .pipe(jshint.reporter(stylish))
@@ -102,7 +103,7 @@ gulp.task('lint:build', gulp.series('build:local', function(){
 
 //test scripts
 // optional --test="search" arg
-gulp.task('test', gulp.series('build:local', function(){
+gulp.task('test', gulp.series(build_local, function(){
 
     let opts = {
         reporter:'spec',
@@ -127,3 +128,30 @@ gulp.task('build', gulp.series(
         });
     }
 ));
+
+// Watcher for local file changes to kickoff build
+function watch(callback) {
+    gulp.watch(['dev/**/*','test/pages/**/*'], build_local);
+    callback();
+}
+gulp.task('watch', watch);
+gulp.task('dev', gulp.series(build_local, watch, local_webserver));
+
+// Run connect to serve local resources
+function local_webserver() {
+    const cors = function (req, res, next) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Headers', '*');
+        next();
+    };
+
+
+    return gulp.src('build', {allowEmpty: true})
+        .pipe(webserver({
+            port: 9000,
+            host: '0.0.0.0',
+            middleware: [cors]
+        }));
+}
+gulp.task('webserver', local_webserver);
+// access via http://localhost:9000/pages/main.html
