@@ -31,23 +31,23 @@ describe("Individual internal functions", function(){
 	function _msg_base( from_lvl, to_lvl ){
 		var _orders = RELAY.test.token("LEVEL_ORDER");
 		return {
-			msg_type:           'foobar',
-            msg_from:           from_lvl,
-            msg_destination:    to_lvl,
-            msg_up:             _orders[from_lvl] < _orders[to_lvl],
-            msg_namespace:      null,
-            msg_data:           {foo: "bar"},
-            msg_id:             'sample_id',
-            msg_tab_id:         null
+			msgType:           'foobar',
+            msgFrom:           from_lvl,
+            msgDestination:    to_lvl,
+            msgUp:             _orders[from_lvl] < _orders[to_lvl],
+            msgNamespace:      null,
+            msgData:           {foo: "bar"},
+            msgId:             'sample_id',
+            msgTabId:         null
 		};
 	}
 
-	describe("_incoming_message", function(){
-		var _incoming_message;
+	describe("_incomingMessage", function(){
+		var _incomingMessage;
 		var resp = null;
 
 		beforeEach(function(){
-			_incoming_message = RELAY.test.token('_incoming_message');
+			_incomingMessage = RELAY.test.token('_incomingMessage');
 			resp = null;
 			RELAY.test.setResponseFn(function( rtype, msg ){
 				resp = { rtype: rtype, msg: msg };
@@ -64,9 +64,9 @@ describe("Individual internal functions", function(){
 					if(level_a !== level_b && level_a !== RELAY.levels.test && level_b !== RELAY.levels.test){
 						resp = null;
 						var msg = _msg_base( level_a, level_b );
-						expect( _incoming_message(msg, null, null) ).to.be.true;
+						expect( _incomingMessage(msg, null, null) ).to.be.true;
 						expect( resp.rtype ).to.be( "bubble" );
-						expect( resp.msg.msg_from ).to.be( RELAY.levels.test );
+						expect( resp.msg.msgFrom ).to.be( RELAY.levels.test );
 					}
 				}
 			}
@@ -74,22 +74,22 @@ describe("Individual internal functions", function(){
 
 		it("message for this level calls bound listeners", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.test );
-			expect( _incoming_message(msg, null, null) ).to.be.true;
+			expect( _incomingMessage(msg, null, null) ).to.be.true;
 		});
 
 		it("messages with same ID aren't processed twice", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.content);
 
-			expect( _incoming_message(msg, null, null) ).to.be.true;
-			expect( _incoming_message(msg, null, null) ).to.be.false;
+			expect( _incomingMessage(msg, null, null) ).to.be.true;
+			expect( _incomingMessage(msg, null, null) ).to.be.false;
 		});
 	});
 
-	describe("_call_bound_listeners", function(){
-		var _call_bound_listeners;
+	describe("_callBoundListeners", function(){
+		var _callBoundListeners;
 
 		beforeEach(() => {
-			_call_bound_listeners = RELAY.test.token('_call_bound_listeners');
+			_callBoundListeners = RELAY.test.token('_callBoundListeners');
 		})
 
 		it("bound listeners get called correctly ", function(done){
@@ -99,60 +99,61 @@ describe("Individual internal functions", function(){
 				done();
 			}
 			_set_listeners({'baz': [{fn:cb, ns:null}]});
-			_call_bound_listeners( 'baz', edata );
+			_callBoundListeners( 'baz', edata );
 		});
 	});
 
-	describe("_get_mtype_info", function(){
-		var _get_mtype_info;
+	describe("_getMtypeInfo", function(){
+		var _getMtypeInfo;
 
 		beforeEach(() => {
-			_get_mtype_info = RELAY.test.token('_get_mtype_info');
-		})
+			_getMtypeInfo = RELAY.test.token('_getMtypeInfo');
+		});
 
 		it("type and namespace are parsed", function(){
-			var mt = _get_mtype_info("foo.bar");
+			var mt = _getMtypeInfo("foo.bar");
 			expect(mt.type).to.be("foo");
 			expect(mt.namespace).to.be("bar");
 		});
 
 		it("type is parsed with no namespace", function(){
-			var mt = _get_mtype_info("foo");
+			var mt = _getMtypeInfo("foo");
 			expect(mt.type).to.be("foo");
 			expect(mt.namespace).to.be.null;
 		});
 
-		it("namespace with included dot is supported", function(){
-			var mt = _get_mtype_info("foo.bar.baz");
+		it("component is parsed properly", function(){
+			var mt = _getMtypeInfo("foo.bar[@baz]");
 			expect(mt.type).to.be("foo");
-			expect(mt.namespace).to.be("bar.baz");
+			expect(mt.namespace).to.be("bar");
+			expect(mt.component).to.be("@baz");
 		});
 
 	});
 
-	describe('_setup_received_msg_clean_interval', function(){
-		var _setup_received_msg_clean_interval;
+	describe('_setupReceivedMsgCleanInterval', function(){
+		var _setupReceivedMsgCleanInterval;
 
 		beforeEach(() => {
-			_setup_received_msg_clean_interval = RELAY.test.token('_setup_received_msg_clean_interval');
+			_setupReceivedMsgCleanInterval = RELAY.test.token('_setupReceivedMsgCleanInterval');
 		})
 
 		it("calling funciton sets TMO interval", function(){
 			//clear existing
 			RELAY.clearTMO();
-			var tmo = RELAY.test.token('received_msg_clean_tmo');
+			var tmo = RELAY.test.token('_receivedMsgCleanTmo');
 			expect(tmo).to.be.null;
-			_setup_received_msg_clean_interval();
-			tmo = RELAY.test.token('received_msg_clean_tmo');
+			_setupReceivedMsgCleanInterval();
+			tmo = RELAY.test.token('_receivedMsgCleanTmo');
 			expect(tmo).to.not.be.null;
 		})
 	});
 
-	describe('_unbind_namspace_listeners_for_message_type', function(){
-		var _unbind_namspace_listeners_for_message_type;
+	describe('_unbindNamspaceListenersForMessageType', function(){
+		var _unbindNamspaceListenersForMessageType;
 
 		beforeEach(() => {
-			_unbind_namspace_listeners_for_message_type = RELAY.test.token('_unbind_namspace_listeners_for_message_type');
+			_unbindNamspaceListenersForMessageType = RELAY.test.token('_unbindNamspaceListenersForMessageType');
 		});
 
 		it("unbinds listener for specific mtype and namespace", function(){
@@ -160,20 +161,20 @@ describe("Individual internal functions", function(){
 				'foo': [{fn:null, ns:null}, {fn:null, ns:'ns1'}],
 				'bar': [{fn:null, ns:null}, {fn:null, ns:'ns1'}, {fn:null, ns:'ns2'}]
 			});
-			_unbind_namspace_listeners_for_message_type( 'bar', 'ns1' );
+			_unbindNamspaceListenersForMessageType( 'bar', 'ns1' );
 			var l = _get_listeners();
 			expect(l.foo.length).to.be(2);
 			expect(l.bar.length).to.be(2);
 		});
 	});
 
-	describe('_relay_from_to_level', function(){
-		var _relay_from_to_level;
+	describe('_relayFromToLevel', function(){
+		var _relayFromToLevel;
 		var last_relay = null;
 
 		beforeEach(() => {
 			last_relay = null;
-			_relay_from_to_level = RELAY.test.token('_relay_from_to_level');
+			_relayFromToLevel = RELAY.test.token('_relayFromToLevel');
 			RELAY.test.setResponseFn(function( relay_type, data ){
 				last_relay = {type: relay_type, data: data};
 			});
@@ -183,145 +184,155 @@ describe("Individual internal functions", function(){
 			RELAY.test.setResponseFn(null);
 		});
 
+		/*
 		it("message from extension to iframe gets relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.extension, RELAY.levels.iframe );
-			_relay_from_to_level( RELAY.levels.extension, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.extension, msg, function(){} );
 			expect(last_relay.type).to.be("extension_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from extension to page gets relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.extension, RELAY.levels.page );
-			_relay_from_to_level( RELAY.levels.extension, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.extension, msg, function(){} );
 			expect(last_relay.type).to.be("extension_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from extension to content gets relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.extension, RELAY.levels.content );
-			_relay_from_to_level( RELAY.levels.extension, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.extension, msg, function(){} );
 			expect(last_relay.type).to.be("extension_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
+		 */
 
 		it("message from content to iframe gets relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.content, RELAY.levels.iframe );
-			_relay_from_to_level( RELAY.levels.content, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.content, msg, function(){} );
 			expect(last_relay.type).to.be("iframe_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from content to page gets relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.content, RELAY.levels.page );
-			_relay_from_to_level( RELAY.levels.content, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.content, msg, function(){} );
 			expect(last_relay.type).to.be("page_content_down");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
+		/*
 		it("message from content to extension gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.content, RELAY.levels.extension );
-			_relay_from_to_level( RELAY.levels.content, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.content, msg, function(){} );
 			expect(last_relay.type).to.be("content_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from page to extension gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.extension );
-			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.page, msg, function(){} );
 			expect(last_relay.type).to.be("page_content_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
+		 */
 
 		it("message from page to content gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.content );
-			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.page, msg, function(){} );
 			expect(last_relay.type).to.be("page_content_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
-		it("message from page to iframe_shim is not relayed", function(){
+		it("message from page to iframe_shim is relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.iframe_shim );
-			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
-			expect(last_relay).to.be(null);
+			_relayFromToLevel( RELAY.levels.page, msg, function(){} );
+			expect(last_relay.type).to.be("iframe_shim_down");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
-		it("message from page to iframe is not relayed", function(){
+		it("message from page to iframe is relayed DOWN", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.iframe );
-			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
-			expect(last_relay).to.be(null);
+			_relayFromToLevel( RELAY.levels.page, msg, function(){} );
+			expect(last_relay.type).to.be("iframe_down");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from page to content gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.page, RELAY.levels.content );
-			_relay_from_to_level( RELAY.levels.page, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.page, msg, function(){} );
 			expect(last_relay.type).to.be("page_content_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
+		/*
 		it("message from iframe to extension gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.iframe, RELAY.levels.extension );
-			_relay_from_to_level( RELAY.levels.iframe, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.iframe, msg, function(){} );
 			expect(last_relay.type).to.be("iframe_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
+		 */
 
 		it("message from iframe to content gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.iframe, RELAY.levels.content );
-			_relay_from_to_level( RELAY.levels.iframe, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.iframe, msg, function(){} );
 			expect(last_relay.type).to.be("iframe_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from iframe to page gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.iframe, RELAY.levels.page );
-			_relay_from_to_level( RELAY.levels.iframe, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.iframe, msg, function(){} );
 			expect(last_relay.type).to.be("iframe_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 
 		it("message from iframe to iframe_shim gets relayed UP", function(){
 			var msg = _msg_base( RELAY.levels.iframe, RELAY.levels.iframe_shim );
-			_relay_from_to_level( RELAY.levels.iframe, msg, function(){} );
+			_relayFromToLevel( RELAY.levels.iframe, msg, function(){} );
 			expect(last_relay.type).to.be("iframe_up");
-			expect(last_relay.data.msg_type).to.be("foobar");
+			expect(last_relay.data.msgType).to.be("foobar");
 		});
 	});
 		
-	describe('_level_via_tab_id', function(){
+	describe('_levelViaTabId', function(){
 
 		it("formats destination w/ tab ID", function(){
-			var lvl = RELAY.test.token('_level_via_tab_id')(RELAY.levels.test, 1234);
+			var lvl = RELAY.test.token('_levelViaTabId')(RELAY.levels.test, 1234);
 			expect(lvl).to.be("test@1234");
 		});
 	});
 	
-	describe('_get_msg', function(){
-		var _get_msg;
+	describe('_getMsg', function(){
+		var _getMsg;
 
 		beforeEach(() => {
-			_get_msg = RELAY.test.token('_get_msg');
+			_getMsg = RELAY.test.token('_getMsg');
 		});
 
 		it("msg object is created correctly", function(){
-			var msg = _get_msg( "foobar", RELAY.levels.page, 'test', true, {biz:"baz"} );
-			expect(msg.msg_type).to.be("foobar");
-			expect(msg.msg_from).to.be("test");
-			expect(msg.msg_destination).to.be(RELAY.levels.page);
-			expect(msg.msg_up).to.be(true);
-			expect(msg.msg_id).to.not.be.null;
-			expect(msg.msg_tab_id).to.be.null;
-			expect(msg.msg_data).to.eql({biz:"baz", msg_id:msg.msg_id});
+			var msg = _getMsg( "foobar", RELAY.levels.page, 'test', true, {biz:"baz"} );
+			expect(msg.msgType).to.be("foobar");
+			expect(msg.msgFrom).to.be("test");
+			expect(msg.msgDestination).to.be(RELAY.levels.page);
+			expect(msg.msgUp).to.be(true);
+			expect(msg.msgId).to.not.be.null;
+			expect(msg.msgTabId).to.be.null;
+			expect(msg.msgData).to.eql({biz:"baz", msgId:msg.msgId});
 		});
 
-		it("msg object preserves msg_id", function(){
-			var msg = _get_msg( "foobar", RELAY.levels.page, 'test', true, {biz:"baz",msg_id:"foobar"} );
-			expect(msg.msg_id).to.be("foobar");
+		it("msg object preserves msgId", function(){
+			var msg = _getMsg( "foobar", RELAY.levels.page, 'test', true, {biz:"baz",msgId:"foobar"} );
+			expect(msg.msgId).to.be("foobar");
+			//expect(msg.msgId.split("@@@")[0].split(":")[0]).to.be(RELAY.levels.page);
+			//expect(msg.msgId.split("@@@")[0].split(":")[1]).to.be("foobar");
 		});
 
 		it("tab ID is extrapolated from destination", function(){
-			var msg = _get_msg( "foobar", RELAY.levels.page+"@1234", true, {biz:"baz",msg_id:"foobar"} );
-			expect(msg.msg_destination).to.be(RELAY.levels.page);
-			expect(msg.msg_tab_id).to.be(1234);
+			var msg = _getMsg( "foobar", RELAY.levels.page+"@1234", true, 'test', {biz:"baz", msgId:"foobar"} );
+			expect(msg.msgDestination).to.be(RELAY.levels.page);
+			expect(msg.msgTabId).to.be(1234);
 		});
 	});
 
@@ -333,7 +344,7 @@ describe("Individual internal functions", function(){
 		});
 
 		beforeEach(function(){
-			RELAY.test.token('_unbind_all')();
+			RELAY.test.token('_unbindAll')();
 			expect(_get_listeners()).to.eql({});
 		});
 
@@ -405,11 +416,11 @@ describe("Individual internal functions", function(){
 		});
 	});
 
-	describe('_unbind_all', function(){
-		var _unbind_all;
+	describe('_unbindAll', function(){
+		var _unbindAll;
 
 		beforeEach(function(){
-			_unbind_all = RELAY.test.token('_unbind_all');
+			_unbindAll = RELAY.test.token('_unbindAll');
 
 			//set some default/expected pre-bound listeners
 			_set_listeners({
@@ -422,14 +433,14 @@ describe("Individual internal functions", function(){
 		});
 
 		it("removes all listeners for a specific namespace", function(){
-			_unbind_all('ns1');
+			_unbindAll('ns1');
 			var l = _get_listeners();
 			expect(l.foo.length).to.be(1);
 			expect(l.bar.length).to.be(2);
 		});
 
 		it("removes all listeners with no namespace specified", function(){
-			_unbind_all();
+			_unbindAll();
 			expect(_get_listeners()).to.eql({});
 		});
 	});
@@ -478,41 +489,41 @@ describe("Individual internal functions", function(){
 
 	});
 
-	describe('_is_valid_destination', function(){
-		var _is_valid_destination;
+	describe('_isValidDestination', function(){
+		var _isValidDestination;
 
 		beforeEach(() => {
-			_is_valid_destination = RELAY.test.token('_is_valid_destination');
+			_isValidDestination = RELAY.test.token('_isValidDestination');
 		});
 
 		it("valid levels are considered valud", function(){
 			for(var level in RELAY.levels){
-				expect( _is_valid_destination(level) ).to.be.true;
+				expect( _isValidDestination(level) ).to.be.true;
 			}
 		});
 
 		it("invalid levels are invalid", function(){
-			expect( _is_valid_destination('invalid') ).to.be.false;
+			expect( _isValidDestination('invalid') ).to.be.false;
 		});
 	});
 
-	describe('_parse_destination', function(){
-		var _parse_destination;
+	describe('_parseDestination', function(){
+		var _parseDestination;
 
 		beforeEach(() => {
-			_parse_destination = RELAY.test.token('_parse_destination');
+			_parseDestination = RELAY.test.token('_parseDestination');
 		});
 
-		it("tab_id and level are parsed", function(){
-			var dest = _parse_destination("test@1234");
+		it("tabId and level are parsed", function(){
+			var dest = _parseDestination("test@1234");
 			expect(dest.level).to.be("test");
-			expect(dest.tab_id).to.be(1234);
+			expect(dest.tabId).to.be(1234);
 		});
 
-		it("level is parsed with no tab_id", function(){
-			var dest = _parse_destination("test");
+		it("level is parsed with no tabId", function(){
+			var dest = _parseDestination("test");
 			expect(dest.level).to.be("test");
-			expect(dest.tab_id).to.be.null;
+			expect(dest.tabId).to.be.null;
 		});
 	});
 	

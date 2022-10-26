@@ -1,7 +1,7 @@
 "use strict";
 
 var expect = require('expect.js'),
-	chrome_extension_message_relay = require('../build/message_relay.build.module.js').relay;
+	chrome_extension_message_relay = require('../build/message_relay.build.test.js').relay;
 
 //This suite is a simple sanity check to verify that prod built version of the script with 
 //test functionality removed, and minified, is still an actual working script and doesn't throw
@@ -14,7 +14,7 @@ describe("Sanity check for prod build", function(){
 	var RELAY;
 
 	beforeEach(() => {
-		RELAY = chrome_extension_message_relay("sanity.check", "page");
+		RELAY = chrome_extension_message_relay("sanity.check", "test");
 	});
 
 	afterEach(() => {
@@ -22,7 +22,6 @@ describe("Sanity check for prod build", function(){
 	});
 
 	it("can bind listeners and mock response", function(done){
-
 		var payload = {foo: "bar"};
 
 		function cb( data ){
@@ -34,7 +33,6 @@ describe("Sanity check for prod build", function(){
 
 		RELAY.on("check.msg", cb);
 		RELAY.mockSend("check", payload);
-
 	});
 
 });

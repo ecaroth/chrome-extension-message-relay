@@ -1,0 +1,72 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Extension Relay Test</title>
+</head>
+
+<body>
+<div id="output" style="display:none">OUTPUT:<BR></div>
+
+<!-- Setup relay initially -->
+<script type="module">
+    import {relay} from '../message_relay.build.module.js'
+    const IFR_NAME = window.location.hash.split("#")[1];
+    const RELAY = relay('dev', 'iframe', false);
+    const COMPONENT_ONE = RELAY.newComponent("ComponentOne", false);
+    const COMPONENT_TWO = RELAY.newComponent("ComponentTwo", false);
+    const output = document.getElementById('output');
+    output.innerHTML = `<B>IFRAME COMPONENT [${IFR_NAME}]</b><BR>OUTPUT:<BR>`
+
+    //COMPONENT_ONE.enabled = false;
+    //COMPONENT_TWO.enabled = false;
+
+    function log(text){
+        //console.log("T", text);
+        output.appendChild(document.createTextNode("- " + text))
+        output.appendChild(document.createElement("br"))
+    }
+
+    COMPONENT_ONE.on('component1.testResponse', (data) => {
+        log(`${COMPONENT_ONE._componentId} test response ${JSON.stringify(data)}`)
+    });
+    COMPONENT_ONE.on('filteredComponentOne', (data) => {
+        // should ONLY work for component one in iframe
+        log(`${COMPONENT_ONE._componentId} specificOneIfrOne response ${JSON.stringify(data)}`)
+    });
+    COMPONENT_TWO.on('filteredComponentOne', (data) => {
+        // should ONLY work for component one in iframe
+        log(`FAIL! Should not have received this message`)
+    });
+
+    COMPONENT_ONE.markReady((envData) => {
+        output.style.display = "block";
+        log(`Mark ${COMPONENT_ONE._componentId} ready from parent ${JSON.stringify(envData)}`)
+
+        setTimeout(() => {
+            COMPONENT_ONE.send('component1.test', {test:'data'});
+            COMPONENT_ONE.markInitialized()
+        },1000)
+    });
+
+
+    // this call should NOT get called until ready
+    COMPONENT_TWO.on('allComponents.preReadyMsg', (data) => {
+        log(`${COMPONENT_TWO._componentId} preReady call received ${JSON.stringify(data)}`)
+    });
+
+    setTimeout(() => {
+        COMPONENT_TWO.markReady((envData) => {
+            output.style.display = "block";
+            log(`Mark ${COMPONENT_TWO._componentId} ready from parent ${JSON.stringify(envData)}`)
+
+            setTimeout(() => {
+                COMPONENT_TWO.send('component2.test', {test:'data'})
+            },1000)
+        });
+    }, 2000)
+</script>
+</body>
+</html>
