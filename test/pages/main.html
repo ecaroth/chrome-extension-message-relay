@@ -27,7 +27,7 @@
         RELAY.componentSend('allComponents.preReady', {data:'foo'});
     }, 500);
 
-    RELAY.componentOn('component1.test', 'ComponentOnee', (data) => {
+    RELAY.componentOn('component1.test', 'ComponentOne', (data) => {
         const info = RELAY.getLastMsg()
         console.log("FROM COMPONENT", data, info);
         // respond to JUST that component

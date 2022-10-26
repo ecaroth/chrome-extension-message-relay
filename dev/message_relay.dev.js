@@ -537,6 +537,14 @@
             _sendDown(msgType, LEVELS.iframe);
         }
 
+        function _componentOn (msgType, componentName, cb){
+            if(![LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)){
+                throw new ChromeExtensionMessageRelayError("Cannot bind component on listeners in this level");
+            }
+            const targetComponent = COMPONENT_NAME_ALL_PREFIX + componentName;
+            _bind(msgType, cb, [LEVELS.iframe, LEVELS.iframe_shim], targetComponent );
+        }
+
         function _deleteInterval(){
             const   DELETE = 1,
                     MARK_FOR_NEXT_ROUND_DELETE = 0;
@@ -678,8 +686,9 @@
             mockSend: _localSendMsg,        // Mock an incoming message to this level, useful for testing apps that use script
             localSend: _localSendMsg,       // Fire event to a local listener (on this level)
             componentSend: _componentSend,  // Fire an event to all components, or optionally named components
-            clearTMO: _clearTmo,
+            componentOn: _componentOn,
             componentRespond: _componentRespond,
+            clearTMO: _clearTmo,
             registerComponentInitializedCb: (fn, nameFilter=null) => {
                 _onComponentInitializedFns.push({fn, name_filter: nameFilter});
             },
@@ -708,21 +717,31 @@
                 return `${COMPONENT_STATE.initEnv}.${COMPONENT_STATE_NS}`;
             }
 
-            markReady(initEnvCallback){
-                if(this._ready) return;
-                this._log("markReady");
-                if(!this.enabled) return;
+            markReady(initEnvCallback=null){
 
-                this.on(this._initMsg, (envData) => {
-                    initEnvCallback(envData);
-                    while(this._pendingInitCalls.length){
-                        let call = this._pendingInitCalls.shift();
-                        call.cb(call.data);
-                    }
-                    this.off(this._initMsg); // TODO - might we wanna call this more than once???
-                });
-                this.send(`${COMPONENT_STATE.ready}.${COMPONENT_STATE_NS}`);
-                this._ready = true;
+                const _ = (cb) => {
+                    if (this._ready) return;
+                    this._log("markReady");
+                    if (!this.enabled) return;
+
+                    this.on(this._initMsg, (envData) => {
+                        cb(envData);
+                        while (this._pendingInitCalls.length) {
+                            let call = this._pendingInitCalls.shift();
+                            call.cb(call.data);
+                        }
+                        this.off(this._initMsg); // TODO - might we wanna call this more than once???
+                    });
+                    this.send(`${COMPONENT_STATE.ready}.${COMPONENT_STATE_NS}`);
+                    this._ready = true;
+                };
+
+                if(!initEnvCallback){
+                    return new Promise((resolve) => {
+                        _(resolve);
+                    });
+                }
+                return _(initEnvCallback);
             }
 
             markInitialized(){
@@ -790,4 +809,4 @@
         globals.chrome_extension_message_relay = relay;         /*REM_MODULE*/
     }                                                           /*REM_MODULE*/
     return relay;
-})(this);
+})(typeof this !== 'undefined' ? this : (typeof window === 'undefined' ? {} : window));

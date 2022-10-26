@@ -40,7 +40,6 @@ function build_local() {
             .pipe(gulp.dest('build')),
         gulp.src("dev/" + FNAMES.dev)
             .pipe(strip_line([/\/\*REM_MODULE\*\//]))
-            .pipe(gulpReplace('})(this);', '})(window);'))
             .pipe(gulpReplace("/* MODULE_EXPORTS */", "export const relay = "))
             .pipe(rename(FNAMES.build_test_module))
             .pipe(gulp.dest('build')),

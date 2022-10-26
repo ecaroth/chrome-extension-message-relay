@@ -41,7 +41,8 @@
         log(`FAIL! Should not have received this message`)
     });
 
-    COMPONENT_ONE.markReady((envData) => {
+    (async () => {
+        const envData = await COMPONENT_ONE.markReady();
         output.style.display = "block";
         log(`Mark ${COMPONENT_ONE._componentId} ready from parent ${JSON.stringify(envData)}`)
 
@@ -49,7 +50,7 @@
             COMPONENT_ONE.send('component1.test', {test:'data'});
             COMPONENT_ONE.markInitialized()
         },1000)
-    });
+    })();
 
 
     // this call should NOT get called until ready
