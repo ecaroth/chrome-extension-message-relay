@@ -539,6 +539,14 @@
             _sendDown(msgType, LEVELS.iframe);
         }
 
+        function _componentOn (msgType, componentName, cb){
+            if(![LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)){
+                throw new ChromeExtensionMessageRelayError("Cannot bind component on listeners in this level");
+            }
+            const targetComponent = COMPONENT_NAME_ALL_PREFIX + componentName;
+            _bind(msgType, cb, [LEVELS.iframe, LEVELS.iframe_shim], targetComponent );
+        }
+
         function _deleteInterval(){
             const   DELETE = 1,
                     MARK_FOR_NEXT_ROUND_DELETE = 0;
@@ -680,8 +688,9 @@
             mockSend: _localSendMsg,        // Mock an incoming message to this level, useful for testing apps that use script
             localSend: _localSendMsg,       // Fire event to a local listener (on this level)
             componentSend: _componentSend,  // Fire an event to all components, or optionally named components
-            clearTMO: _clearTmo,
+            componentOn: _componentOn,
             componentRespond: _componentRespond,
+            clearTMO: _clearTmo,
             registerComponentInitializedCb: (fn, nameFilter=null) => {
                 _onComponentInitializedFns.push({fn, name_filter: nameFilter});
             },
