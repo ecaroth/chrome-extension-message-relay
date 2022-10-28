@@ -69,9 +69,9 @@ gulp.task("build:prod", gulp.parallel(
         return gulp.src("dev/" + FNAMES.dev)
             .pipe(strip_line([/\/\*REM\*\//]))
             .pipe(strip_line([/\/\*REM_MODULE\*\//]))
+            .pipe(gulpReplace("/* MODULE_EXPORTS */", "export const relay = "))
             .pipe(uglify({mangle: true, compress: true}))
             .pipe(insert.prepend(ATTIBUTION))
-            .pipe(insert.append('export {relay};'))
             .pipe(rename(FNAMES.prod_module))
             .pipe(gulp.dest('dist'));
     }
@@ -116,16 +116,18 @@ gulp.task('test', gulp.series(build_local, function(){
         .pipe(mocha(opts))
 }));
 
+gulp.task('buildModuleTypes', function buildTypesFile(done){
+    let cmd = "npx tsc --allowJs --declaration --emitDeclarationOnly ./dist/"+FNAMES.prod_module;
+    return exec(cmd, function (err, stdout, stderr) {
+        done();
+    });
+});
+
 gulp.task('build', gulp.series(
     'lint:build',
     'test',
     'build:prod',
-    function buildTypesFile(done){
-        let cmd = "npx tsc --allowJs --declaration --emitDeclarationOnly ./dist/"+FNAMES.prod_module;
-        return exec(cmd, function (err, stdout, stderr) {
-            done();
-        });
-    }
+    'buildModuleTypes'
 ));
 
 // Watcher for local file changes to kickoff build
