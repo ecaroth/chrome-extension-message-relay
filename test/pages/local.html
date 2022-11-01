@@ -1,0 +1,34 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Extension Relay Test</title>
+</head>
+
+<body>
+
+<script type="module">
+    import {relay} from '../message_relay.build.module.js'
+    const RELAY = relay('dev', 'page', true);
+    RELAY.setOverrideLocalComponentInit({
+        foo: "bar",
+        biz: "baz"
+    });
+    const COMPONENT_ONE = RELAY.newComponent("ComponentOne", false);
+
+    (async () => {
+        const envData = await COMPONENT_ONE.markReady();
+        console.log(`Mark ${COMPONENT_ONE._componentId} ready from parent ${JSON.stringify(envData)}`)
+
+        setTimeout(() => {
+            COMPONENT_ONE.send('component1.test', {test:'data'});
+            COMPONENT_ONE.markInitialized()
+        },1000)
+    })();
+
+</script>
+
+</body>
+</html>

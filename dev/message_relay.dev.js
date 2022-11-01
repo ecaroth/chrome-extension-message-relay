@@ -36,10 +36,11 @@
             _lastSender = null,                          // info about the last message sender
             _lastMsg = null,                             // the last received message (type, component, namespace))
             _listeners = {},                             // bound listeners for the relay (at this level)
-            // _contentScriptsReady = {},                  // used by extension level only, to track what content scripts in tabIds are ready
+            // _contentScriptsReady = {},                // used by extension level only, to track what content scripts in tabIds are ready
             _contentScriptConnectPort = null,            // used by content script level only, to hold variable for chrome.rumtime port to extension
             _onComponentInitializedFns = [],             // FNs to call when a component is initialized. Format is (componentName, iframeRef, windowRef)
-            _componentEnvData = {};                      // hash of env data to pass to iframed components when they initialize (only used in content)
+            _componentEnvData = {},                      // hash of env data to pass to iframed components when they initialize (only used in content)
+            _componentLocalOverride = false;             // For testing/debug, short-circuit actual component inti lifecycle
 
         const COMPONENT_STATE_NS = '_CSTATE';
         const COMPONENT_STATE = Object.freeze({
@@ -692,8 +693,12 @@
             registerComponentInitializedCb: (fn, nameFilter=null) => {
                 _onComponentInitializedFns.push({fn, name_filter: nameFilter});
             },
-            setComponentEnvData: (env_data) => {
-                _componentEnvData = env_data;
+            setComponentEnvData: (envData) => {
+                _componentEnvData = envData;
+            },
+            setOverrideLocalComponentInit: (envData) => {
+                _componentEnvData = envData;
+                _componentLocalOverride = true;
             },
             getComponentEnvData: () => {
                 return _componentEnvData;
@@ -724,15 +729,20 @@
                     this._log("markReady");
                     if (!this.enabled) return;
 
-                    this.on(this._initMsg, (envData) => {
+                    const initReturn = (envData) => {
                         cb(envData);
                         while (this._pendingInitCalls.length) {
                             let call = this._pendingInitCalls.shift();
                             call.cb(call.data);
                         }
                         this.off(this._initMsg); // TODO - might we wanna call this more than once???
-                    });
-                    this.send(`${COMPONENT_STATE.ready}.${COMPONENT_STATE_NS}`);
+                    };
+                    if(_componentLocalOverride){
+                        initReturn(_componentEnvData);
+                    }else {
+                        this.on(this._initMsg, initReturn)
+                        this.send(`${COMPONENT_STATE.ready}.${COMPONENT_STATE_NS}`);
+                    }
                     this._ready = true;
                 };
 
@@ -790,7 +800,7 @@
         }
 
         RETURNS.newComponent = (component_name, debug=false) => {
-            if(level !== LEVELS.iframe){
+            if(level !== LEVELS.iframe && !_componentLocalOverride){
                 throw new ChromeExtensionMessageRelayError("You can only create a component in an iframe level.");
             }
             let component = new Component(RETURNS, component_name, debug);
