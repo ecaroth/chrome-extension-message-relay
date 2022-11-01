@@ -12,10 +12,12 @@
 <script type="module">
     import {relay} from '../message_relay.build.module.js'
     const RELAY = relay('dev', 'page', true);
+
     RELAY.setOverrideLocalComponentInit({
         foo: "bar",
         biz: "baz"
     });
+
     const COMPONENT_ONE = RELAY.newComponent("ComponentOne", false);
 
     (async () => {

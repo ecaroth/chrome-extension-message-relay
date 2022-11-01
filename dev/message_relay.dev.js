@@ -740,7 +740,7 @@
                     if(_componentLocalOverride){
                         initReturn(_componentEnvData);
                     }else {
-                        this.on(this._initMsg, initReturn)
+                        this.on(this._initMsg, initReturn);
                         this.send(`${COMPONENT_STATE.ready}.${COMPONENT_STATE_NS}`);
                     }
                     this._ready = true;
