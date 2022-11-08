@@ -7,7 +7,8 @@ export function relay(t: any, n: any, i: any, s: any): {
         iframe_shim: string;
         test: string;
     }>;
-    on: (e: any, t: any, n?: any, i?: any) => void;
+    on: (e: any, t: any, n?: any, i?: boolean, s?: any) => void;
+    onOnce: (e: any, t: any, n?: any) => void;
     off: (e: any) => void;
     componentOff: (e: any, t: any) => void;
     offAll: (e: any) => void;
@@ -20,10 +21,11 @@ export function relay(t: any, n: any, i: any, s: any): {
     mockSend: (e: any, t: any) => void;
     localSend: (e: any, t: any) => void;
     componentSend: (e: any, t: any, n?: any) => void;
-    componentOn: (e: any, t: any, n: any) => void;
+    componentOn: (e: any, t: any, n: any, i: any) => void;
     componentRespond: (e: any, t: any) => void;
     clearTMO: () => void;
     registerComponentInitializedCb: (e: any, t?: any) => void;
     setComponentEnvData: (e: any) => void;
+    setOverrideLocalComponentInit: (e: any) => void;
     getComponentEnvData: () => {};
 };

@@ -30,6 +30,15 @@
         },1000)
     })();
 
+    let numCbs = 0;
+    RELAY.onOnce('onceTest', () => {
+        numCbs++;
+        console.log('onceTest called!', numCbs);
+    });
+
+    RELAY.localSend('onceTest');
+    RELAY.localSend('onceTest');
+
 </script>
 
 </body>

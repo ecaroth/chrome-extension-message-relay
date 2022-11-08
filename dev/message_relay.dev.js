@@ -61,7 +61,7 @@
         // This function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
         // you can also namespace msg types with msgType.namespace, or specify no namespace
         // limitFrom_level allows you to limit the incoming messages that listener will fire on for security purposes
-        function _bind( msgTypes, cb, limitFromLevels= null, componentId = null){
+        function _bind( msgTypes, cb, limitFromLevels= null, isOnce=false, componentId = null){
             if( typeof msgTypes === 'string' ) msgTypes = [msgTypes];
             if(limitFromLevels && !Array.isArray(limitFromLevels)) limitFromLevels = [limitFromLevels];
 
@@ -69,10 +69,11 @@
                 let mtypeInfo = _getMtypeInfo(msgType);
                 if(!(mtypeInfo.type in _listeners)) _listeners[mtypeInfo.type] = [];
                 _listeners[mtypeInfo.type].push({
-                    'fn': cb,
-                    'ns': mtypeInfo.namespace,
+                    fn: cb,
+                    ns: mtypeInfo.namespace,
                     limitFromLevels,
                     componentId,
+                    isOnce
                 });
             });
         }
@@ -442,7 +443,7 @@
 
             if(!(type in _listeners)) return;
 
-            _listeners[type].forEach((listener) => {
+            _listeners[type].forEach((listener, index) => {
                 const limitFrom = listener.limitFromLevels;
                 if(!limitFrom || limitFrom.includes(sourceLevel)){
 
@@ -466,6 +467,7 @@
                     }
 
                     listener.fn.call( listener, msgData );
+                    if(listener.isOnce) delete _listeners[type][index];
                 }
             });
         }
@@ -538,12 +540,12 @@
             _sendDown(msgType, LEVELS.iframe);
         }
 
-        function _componentOn (msgType, componentName, cb){
+        function _componentOn (msgType, componentName, cb, isOnce){
             if(![LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)){
                 throw new ChromeExtensionMessageRelayError("Cannot bind component on listeners in this level");
             }
             const targetComponent = COMPONENT_NAME_ALL_PREFIX + componentName;
-            _bind(msgType, cb, [LEVELS.iframe, LEVELS.iframe_shim], targetComponent );
+            _bind(msgType, cb, [LEVELS.iframe, LEVELS.iframe_shim], isOnce, targetComponent );
         }
 
         function _deleteInterval(){
@@ -665,6 +667,9 @@
         const RETURNS = {
             levels: LEVELS,                 // Get list of available levels
             on: _bind,                      // Bind listener for msg event
+            onOnce: (msgTypes, cb, limitFromLevels= null) => {  // Bind listener for a single callback
+                _bind(msgTypes, cb, limitFromLevels, true);
+            },
             off: (msgTypes) => {            // Unbind listener for msg event
                 _unbind(msgTypes);
             },
@@ -770,18 +775,22 @@
                 console.warn(...items);
             }
 
-            on(msgType, cb){
-                this._log(`>>> .on`, msgType);
+            onOnce(msgType, cb){
+                this.on(msgType, cb, true);
+            }
+
+            on(msgType, cb, onOnce=false){
+                this._log(`>>> .on${onOnce ? 'Once' : ''}`, msgType);
                 if(!this.enabled) return;
                 let limitLevels = [this._relay.levels.page, this._relay.levels.content, this._relay.levels.iframe_shim];
                 this._relay.on(msgType, (data) => {
-                    // TODO more logging
+                    this._log('>>> .on called', msgType, data);
                     if(!this._ready && msgType !== this._initMsg){
                         // queue calls until component is ready
                         return this._pendingInitCalls.push({cb, data});
                     }
                     cb(data);
-                }, limitLevels, this._componentId);
+                }, limitLevels, onOnce, this._componentId);
             }
 
             send(msgType, data= {}){
