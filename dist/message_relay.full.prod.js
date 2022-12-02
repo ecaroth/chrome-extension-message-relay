@@ -22,7 +22,7 @@
                 test:       'test'                  // relay for unit testing
             }),
             LEVEL_ORDER = Object.freeze({           // ordering of levels (indicitive of how messages can bubble up/down)
-                extension:      4,
+                service_worker: 4,
                 content:        3,
                 page:           2,
                 iframe_shim:    1,
@@ -63,7 +63,7 @@
         // This function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
         // you can also namespace msg types with msgType.namespace, or specify no namespace
         // limitFrom_level allows you to limit the incoming messages that listener will fire on for security purposes
-        function _bind( msgTypes, cb, limitFromLevels= null, isOnce=false, componentId = null){
+        function _bind( msgTypes, cb, limitFromLevels= null, isOnce=false, componentFilter = null){
             if( typeof msgTypes === 'string' ) msgTypes = [msgTypes];
             if(limitFromLevels && !Array.isArray(limitFromLevels)) limitFromLevels = [limitFromLevels];
 
@@ -74,7 +74,7 @@
                     fn: cb,
                     ns: mtypeInfo.namespace,
                     limitFromLevels,
-                    componentId,
+                    componentFilter,
                     isOnce
                 });
             });
@@ -449,17 +449,18 @@
                 const limitFrom = listener.limitFromLevels;
                 if(!limitFrom || limitFrom.includes(sourceLevel)){
 
-                    if(component && level === LEVELS.iframe) {
+                    if(component && [LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)) {
+                        const listenerCompFilter = listener.componentFilter;
 
-                        if (component !== COMPONENT_NAME_ALL_PREFIX) {
-                            if(!component.startsWith(COMPONENT_NAME_ALL_PREFIX) && component !== listener.componentId){
+                        if (listenerCompFilter !== COMPONENT_NAME_ALL_PREFIX) {
+                            if(!listenerCompFilter.startsWith(COMPONENT_NAME_ALL_PREFIX) && component !== listenerCompFilter){
                                 // message targetted at a specific component ID, and this aint it
                                 return;
                             }
-                            if(component.startsWith(COMPONENT_NAME_ALL_PREFIX)){
+                            if(listenerCompFilter.startsWith(COMPONENT_NAME_ALL_PREFIX)){
                                 // at this point we know it's a name-targetted component like '***COMPONENT_NAME'
-                                const componentName = _componentNameFromId(listener.componentId);
-                                if (componentName !== component.replace(COMPONENT_NAME_ALL_PREFIX, '')) {
+                                const compName = _componentNameFromId(component);
+                                if (compName !== listenerCompFilter.replace(COMPONENT_NAME_ALL_PREFIX, '')) {
                                     // componenet name for this listener does NOT match the target
                                     return;
                                 }
@@ -531,7 +532,7 @@
             _incomingMessage( msg, {tabId: 999} );
         }
 
-        function _componentSend( msgType, data, componentName=null ){
+        function _componentSend( msgType, data={}, componentName=null ){
             const mtypeParts = _getMtypeInfo(msgType);
 
             const componentFilter = COMPONENT_NAME_ALL_PREFIX + (componentName || '');

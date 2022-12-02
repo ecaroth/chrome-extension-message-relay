@@ -20,7 +20,7 @@ export function relay(t: any, n: any, i: any, s: any): {
     getLastMsg: () => any;
     mockSend: (e: any, t: any) => void;
     localSend: (e: any, t: any) => void;
-    componentSend: (e: any, t: any, n?: any) => void;
+    componentSend: (e: any, t?: {}, n?: any) => void;
     componentOn: (e: any, t: any, n: any, i: any) => void;
     componentRespond: (e: any, t: any) => void;
     clearTMO: () => void;
