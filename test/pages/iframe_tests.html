@@ -1,0 +1,21 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Extension Relay Test</title>
+</head>
+
+<body>
+
+<!-- Setup relay initially -->
+<script type="module">
+    import {relay} from '../message_relay.build.module.js'
+    const RELAY = relay('dev', 'iframe', true);
+    RELAY.on('foo:bar', (data) => {
+        console.log("GOT IT", data);
+    })
+</script>
+</body>
+</html>

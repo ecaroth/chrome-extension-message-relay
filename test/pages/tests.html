@@ -1,0 +1,27 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Extension Relay Test</title>
+</head>
+
+<body>
+<iframe src="iframe_tests.html" style="width:100%; height:350px;"></iframe>
+
+<script type="module">
+    import {relay} from '../message_relay.build.module.js'
+    const RELAY = relay('dev', 'iframe_shim', true);
+    setTimeout(() => {
+        //RELAY.send('foo:bar', RELAY.levels.iframe, {foo: 'bar'})
+    }, 1000);
+
+    RELAY.on('test.foo', ()=> {});
+    RELAY.on('test2.foo', () => {});
+
+    RELAY.offAll('foo')
+</script>
+
+</body>
+</html>

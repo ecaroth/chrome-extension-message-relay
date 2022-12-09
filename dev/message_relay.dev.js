@@ -1,5 +1,5 @@
 // IMPORTANT NOTE!
-// DO NOT use this version of the script in production, this is the dev/build version that exposes internal 
+// DO NOT use this version of the script in production, this is the dev/build version that exposes internal
 // functions for testing. Use the modified, minified version in /dist/message_relay.prod.js
 
 // NOTE - lines that include /*REM*/ are stripped when building production version of this script
@@ -28,7 +28,7 @@
                 test:           -1
             }),
             level = relayLevel;                          // relay level (one of 'content','page','iframe','extension') - the level that THIS relay is listening at
-        
+
         let _receivedMessages = {},                      // digest of all received messages by msgId, which is cleaned out every 2 mins to keep memory usage down
             _receivedMsgCleanTmo = null,                 // tmo for setTimeout call used to clean _receivedMessages digest every 2 minutes
             _receivedMsgCleanIntervalSecs = 2*60,        // 2 mins between digest cleaning intervals
@@ -55,7 +55,7 @@
         // =============== START OF TEST-ONLY VARIABLE DEFS ====================
 
         let testResponse = null;  //Response function used to validate tests in a few circumstances                     /*REM*/
-            
+
         // =============== END OF TEST-ONLY VARIABLE DEFS ====================
 
         // This function allows you to bind any msg type as a listener, and will ping the callback when the message comes to this level (exposed as <instance>.on)
@@ -142,10 +142,8 @@
         //utility function to unbind all namespaced listeners for supplied message type
         function _unbindNamspaceListenersForMessageType( msgType, namespace ){
             if(!(msgType in _listeners)) return;
-
-            for( let i = _listeners[msgType].length-1; i>=0; i--){
-                if(_listeners[msgType][i].ns === namespace) _listeners[msgType].splice(i,1);
-            }
+            _listeners[msgType] = _listeners[msgType].filter(l => l.ns !== namespace);
+            if(!_listeners[msgType].length) delete _listeners[msgType];
         }
 
         //this function unbinds ALL listeners, or all listeners for a specific namespace
@@ -175,7 +173,7 @@
             // data = javascript variable to pass with message
             let msgId = ('msgId' in data) ? data.msgId : _buildMsgId(dest, type);
             data.msgId = msgId;
-            let msg_obj = {
+            let msgObj = {
                 msgType:            type,
                 msgFrom:            level,
                 sourceLevel:        sourceLevel,
@@ -188,10 +186,10 @@
             };
             const destObj = _parseDestination(dest);
             if( destObj.tabId ){
-                msg_obj.msgDestination = destObj.level;
-                msg_obj.msgTabId = destObj.tabId;
+                msgObj.msgDestination = destObj.level;
+                msgObj.msgTabId = destObj.tabId;
             }
-            return msg_obj;
+            return msgObj;
         }
 
         // send a message reponse to the last component message received
@@ -233,14 +231,14 @@
         function _sendDown( msgType, destination, data= {}){
             const msg = _getMsg( msgType, destination, level, false, data );
             _log( `Send msg DOWN from ${level} to ${destination} : ${msgType} - ${JSON.stringify(data)}`);
-            _relay( msg);
+            _relay(msg);
         }
 
         //send a message UP the listening stack (exposed as <instance>.send_up)
         function _sendUp( msgType, destination, data ){
             const msg = _getMsg( msgType, destination, level, true, data );
             _log( `Send msg UP from ${level} to ${destination} : ${msgType} - ${JSON.stringify(data)}`);
-            _relay( msg );
+            _relay(msg);
         }
 
         //fn to relay a message from thisLevel either up/down (using appropriate method baesd on data.msgDestination)
@@ -254,7 +252,7 @@
             */
             if( (thisLevel === LEVELS.content && msg.msgDestination === LEVELS.service_worker) || thisLevel === LEVELS.service_worker ){
                 //going UP form content script to extension. use connected runtime port
-                        
+
                 if(level === LEVELS.test){                                                                              /*REM*/
                     if(typeof testResponse === 'function') testResponse("content_up", msg);                             /*REM*/
                 }else{                                                                                                  /*REM*/
@@ -315,7 +313,6 @@
                         // determine target and set targetOrigin appropriately
                         if(msg.msgDestination === LEVELS.iframe && thisLevel === LEVELS.iframe_shim){
                             // sending DOWN to sub-frames from iframe shim
-
                             // NOTE this makes the assumption that we want to post to all sub-frames within the shim
                             // if we want to restrict which frames it is passed to, this will need to change
                             for (let i=0; i < globals.frames.length; i++) {
@@ -396,8 +393,9 @@
         function _callBoundListeners( msgType, msgData, sourceLevel ){
             // handle special component-case messages
 
-            // strip msgId from data ? TODO
+            // strip msgId from data
             delete msgData.msgId;
+            delete msgData.msg_id; // for LEGACY messages from v2
 
             const {component, namespace, type} = _getMtypeInfo(msgType);
 
@@ -521,7 +519,7 @@
             console.log(`::MSG-RELAY (${level}):: ${msg}`);
         }
 
-        //fn to mock an incoming message to the relay (as if incoming from a different level) - useful for testing 
+        //fn to mock an incoming message to the relay (as if incoming from a different level) - useful for testing
         //funcitonality tied to bound listeners in applications that use the relay
         function _localSendMsg( msgType, data){
             data = _validateData(data);
@@ -551,7 +549,7 @@
 
         function _deleteInterval(){
             const   DELETE = 1,
-                    MARK_FOR_NEXT_ROUND_DELETE = 0;
+                MARK_FOR_NEXT_ROUND_DELETE = 0;
 
             for(let msgId in _receivedMessages){
                 if(_receivedMessages[msgId] === MARK_FOR_NEXT_ROUND_DELETE){
@@ -580,7 +578,7 @@
 
         // =============== START OF TEST-ONLY FUNCTIONALITY ====================
 
-        
+
         //fn to check current env and throw error if we are NOT in test env
         function _isTest(){                                                                                             /*REM*/
             if(level !== LEVELS.test){                                                                                  /*REM*/
@@ -601,8 +599,8 @@
             setRecMsg:      (v) => { _receivedMessages = v; }, //set the _receivedMessages msg_obj                      /*REM*/
             setResponseFn:  (fn) => { _isTest(); testResponse=fn; }, //set test fn that is called for responses         /*REM*/
             token:          (token) => {                                                                                /*REM*/
-                                _isTest();                                                                              /*REM*/
-                                return eval(token);                                                                     /*REM*/ // jshint ignore:line
+                _isTest();                                                                                              /*REM*/
+                return eval(token);                                                                                     /*REM*/ // jshint ignore:line
             } //get exposed reference to an internal fn/var                                                             /*REM*/
         };                                                                                                              /*REM*/
 
@@ -631,15 +629,38 @@
 
         // =============== END OF TEST-ONLY FUNCTIONALITY ====================
 
+        // LEGACY handling -- when v2 message relay messages are passed in, they keys are now different
+        // NOTE -- this only allows v3 relays to RECIEVE v2 messages, *NOT* send messages to v2
+        const translateFromLegacyMessageFormat = (msg) => {
+            if('msg_namespace' in msg){
+                let translated = {};
+                for(let key in msg){
+                    if(key === 'msg_namespace'){
+                        translated.relayNamespace = msg.msg_namespace;
+                    }else{
+                        // convert from old camel case to snake case keys
+                        const newKey = key.replace(/_[a-z]/g, letter => `${letter.toUpperCase()}`.replace("_",''));
+                        translated[newKey] = msg[key];
+                    }
+                }
+                return translated;
+            }else{
+                return msg;
+            }
+        };
+
         if( level !== LEVELS.test ){
             //if NOT in test ENV, bind needed listeners for appropriate ENV to wire things up
-        
+
             if( [LEVELS.page, LEVELS.content, LEVELS.iframe, LEVELS.iframe_shim].includes(level)){
                 //this relay is in the page, content, or iframe level so setup listener for postmessage calls
                 globals.addEventListener('message', (event) => {
+                    if(typeof event.data !== 'object') return;
+                    const msg = translateFromLegacyMessageFormat(event.data);
+
                     // IGNORE stuff that isn't part of relay traffic, for this namespace
-                    if(typeof event.data === 'object' && 'relayNamespace' in event.data && (event.data.relayNamespace === _relayNamespace)){
-                        _incomingMessage( event.data, event.source );
+                    if('relayNamespace' in msg && (msg.relayNamespace === _relayNamespace)){
+                        _incomingMessage( msg, event.source );
                     }
                 });
             }
@@ -826,7 +847,7 @@
         module.exports = relay;                                 /*REM_MODULE*/
     }else{                                                      /*REM_MODULE*/
         //publish for browser/extension                         /*REM_MODULE*/
-        globals.chrome_extension_message_relay = relay;         /*REM_MODULE*/
+        globals.chrome_extension_message_relay = globals.chromeExtensionMessageRelay = relay;         /*REM_MODULE*/
     }                                                           /*REM_MODULE*/
     return relay;
 })(typeof this !== 'undefined' ? this : (typeof window === 'undefined' ? {} : window));
