@@ -7,6 +7,7 @@ export function relay(t: any, n: any, i: any, s: any): {
         iframe_shim: string;
         test: string;
     }>;
+    curLevel: () => any;
     on: (e: any, t: any, n?: any, i?: boolean, s?: any) => void;
     onOnce: (e: any, t: any, n?: any) => void;
     off: (e: any) => void;

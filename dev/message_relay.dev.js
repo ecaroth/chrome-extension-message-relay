@@ -688,6 +688,9 @@
 
         const RETURNS = {
             levels: LEVELS,                 // Get list of available levels
+            curLevel: () => {
+                return level;
+            },
             on: _bind,                      // Bind listener for msg event
             onOnce: (msgTypes, cb, limitFromLevels= null) => {  // Bind listener for a single callback
                 _bind(msgTypes, cb, limitFromLevels, true);
