@@ -451,11 +451,12 @@
                         const listenerCompFilter = listener.componentFilter;
 
                         if (listenerCompFilter !== COMPONENT_NAME_ALL_PREFIX) {
-                            if(!listenerCompFilter.startsWith(COMPONENT_NAME_ALL_PREFIX) && component !== listenerCompFilter){
+                            const filterCheck = listenerCompFilter || "";
+                            if(!filterCheck.startsWith(COMPONENT_NAME_ALL_PREFIX) && component !== listenerCompFilter){
                                 // message targetted at a specific component ID, and this aint it
                                 return;
                             }
-                            if(listenerCompFilter.startsWith(COMPONENT_NAME_ALL_PREFIX)){
+                            if(filterCheck.startsWith(COMPONENT_NAME_ALL_PREFIX)){
                                 // at this point we know it's a name-targetted component like '***COMPONENT_NAME'
                                 const compName = _componentNameFromId(component);
                                 if (compName !== listenerCompFilter.replace(COMPONENT_NAME_ALL_PREFIX, '')) {
