@@ -1,11 +1,11 @@
 export function relay(t: any, n: any, i: any, s: any): {
     levels: Readonly<{
-        service_worker: string;
-        content: string;
-        page: string;
-        iframe: string;
-        iframe_shim: string;
-        test: string;
+        service_worker: "service_worker";
+        content: "content";
+        page: "page";
+        iframe: "iframe";
+        iframe_shim: "iframe_shim";
+        test: "test";
     }>;
     curLevel: () => any;
     on: (e: any, t: any, n?: any, i?: boolean, s?: any) => void;

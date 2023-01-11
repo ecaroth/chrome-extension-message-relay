@@ -117,7 +117,8 @@ gulp.task('test', gulp.series(build_local, function(){
 }));
 
 gulp.task('buildModuleTypes', function buildTypesFile(done){
-    let cmd = "npx tsc --allowJs --declaration --emitDeclarationOnly ./dist/"+FNAMES.prod_module;
+    const cmd = `npx -p typescript tsc dist/${FNAMES.prod_module} --declaration --allowJs --emitDeclarationOnly --outDir dist`;
+    console.log(cmd)
     return exec(cmd, function (err, stdout, stderr) {
         done();
     });
