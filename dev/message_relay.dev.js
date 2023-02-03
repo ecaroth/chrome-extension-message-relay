@@ -441,7 +441,9 @@
 
             if(!(type in _listeners)) return;
 
-            _listeners[type].forEach((listener, index) => {
+            const listeners = _listeners[type];
+            for(let i=listeners.length-1; i >=0; i--){
+                const listener = listeners[i];
                 const limitFrom = listener.limitFromLevels;
                 if(!limitFrom || limitFrom.includes(sourceLevel)){
 
@@ -467,9 +469,9 @@
                     }
 
                     listener.fn.call( listener, msgData );
-                    if(listener.isOnce) delete _listeners[type][index];
+                    if(listener.isOnce) listeners.splice(i, 1);
                 }
-            });
+            }
         }
 
         //check if a level is an actual context level (or level w/ tab.id)
@@ -522,25 +524,30 @@
 
         //fn to mock an incoming message to the relay (as if incoming from a different level) - useful for testing
         //funcitonality tied to bound listeners in applications that use the relay
-        function _localSendMsg( msgType, data){
+        function _localSendMsg( msgType, data, componentId=null){
             data = _validateData(data);
+            if(componentId) {
+                const mtypeParts = _getMtypeInfo(msgType);
+                msgType = _buildMsgTypeFromParts(mtypeParts.type, mtypeParts.namespace, componentId);
+            }
+
             const msg = _getMsg( msgType, level, level,true, data );
             msg.msgFrom = 'mock';
             _incomingMessage( msg, {tabId: 999} );
         }
 
-        function _componentSend( msgType, data={}, componentName=null ){
-            const mtypeParts = _getMtypeInfo(msgType);
 
+        function _componentSend( msgType, data={}, componentName=null, forceLocal=false ){
+            const mtypeParts = _getMtypeInfo(msgType);
             const componentFilter = COMPONENT_NAME_ALL_PREFIX + (componentName || '');
             msgType = _buildMsgTypeFromParts(mtypeParts.type, mtypeParts.namespace, componentFilter);
-            if(level === LEVELS.iframe){
+            if(level === LEVELS.iframe || forceLocal){
                 return _localSendMsg( msgType, data);
             }
             _sendDown(msgType, LEVELS.iframe);
         }
 
-        function _componentOn (msgType, componentName, cb, isOnce){
+        function _componentOn (msgType, componentName, cb, isOnce=false){
             if(![LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)){
                 throw new ChromeExtensionMessageRelayError("Cannot bind component on listeners in this level");
             }
@@ -718,6 +725,9 @@
             mockSend: _localSendMsg,        // Mock an incoming message to this level, useful for testing apps that use script
             localSend: _localSendMsg,       // Fire event to a local listener (on this level)
             componentSend: _componentSend,  // Fire an event to all components, or optionally named components
+            componentLocalSend: (msgType, data={}, componentName=null) => {
+                _componentSend(msgType, data, componentName, true);
+            },
             componentOn: _componentOn,
             componentRespond: _componentRespond,
             clearTMO: _clearTmo,
