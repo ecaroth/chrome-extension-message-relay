@@ -1,4 +1,4 @@
-/* Version 3.0.1 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.0.9 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -759,6 +759,7 @@
                 this._ready = false;
                 this._initialized = false;
                 this._pendingInitCalls = [];
+                this._limitLevels = [this._relay.levels.page, this._relay.levels.content, this._relay.levels.iframe_shim];
             }
 
             get _initMsg(){
@@ -820,7 +821,6 @@
             on(msgType, cb, onOnce=false){
                 this._log(`>>> .on${onOnce ? 'Once' : ''}`, msgType);
                 if(!this.enabled) return;
-                let limitLevels = [this._relay.levels.page, this._relay.levels.content, this._relay.levels.iframe_shim];
                 this._relay.on(msgType, (data) => {
                     this._log('>>> .on called', msgType, data);
                     if(!this._ready && msgType !== this._initMsg){
@@ -828,14 +828,13 @@
                         return this._pendingInitCalls.push({cb, data});
                     }
                     cb(data);
-                }, limitLevels, onOnce, this._componentId);
+                }, this._limitLevels, onOnce, this._componentId);
             }
 
             send(msgType, data= {}){
                 this._log(`>>> .send`, msgType, data);
                 if(!this.enabled) return;
-                let sendLevels = [this._relay.levels.page, this._relay.levels.content];
-                this._relay.send(msgType, sendLevels, data, this._componentId);
+                this._relay.send(msgType, this._limitLevels, data, this._componentId);
             }
 
             off(msgTypes){
@@ -863,7 +862,9 @@
         module.exports = relay;                                 /*REM_MODULE*/
     }else{                                                      /*REM_MODULE*/
         //publish for browser/extension                         /*REM_MODULE*/
-        globals.chrome_extension_message_relay = globals.chromeExtensionMessageRelay = relay;         /*REM_MODULE*/
+        if(!('chromeExtensionMessageRelay' in globals)) {        /*REM_MODULE*/
+            globals.chromeExtensionMessageRelay = globals.chrome_extension_message_relay = relay;   /*REM_MODULE*/
+        }                                                       /*REM_MODULE*/
     }                                                           /*REM_MODULE*/
     return relay;
 })(typeof this !== 'undefined' ? this : (typeof window === 'undefined' ? {} : window));
