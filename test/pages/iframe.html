@@ -14,7 +14,7 @@
 <script type="module">
     import {relay} from '../message_relay.build.module.js'
     const IFR_NAME = window.location.hash.split("#")[1];
-    const RELAY = relay('dev', 'iframe', false);
+    const RELAY = relay('dev', 'iframe', true);
     const COMPONENT_ONE = RELAY.newComponent("ComponentOne", false);
     const COMPONENT_TWO = RELAY.newComponent("ComponentTwo", false);
     const output = document.getElementById('output');

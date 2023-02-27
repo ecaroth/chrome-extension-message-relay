@@ -402,7 +402,7 @@
             const {component, namespace, type} = _getMtypeInfo(msgType);
 
             if(component){
-                if([LEVELS.content,LEVELS.page].includes(level)){
+                if([LEVELS.content, LEVELS.page], LEVELS.iframe_shim.includes(level)){
                     // Handle specific reception cases in parent (CONTENT/PAGE)
 
                     const cWindow = _lastSender;
