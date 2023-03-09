@@ -1,6 +1,6 @@
 {
   "name": "chrome-extension-message-relay",
-  "version": "3.0.9",
+  "version": "3.0.11",
   "description": "A library to work with message passing at various levels of the browser for Chrome Extensions",
   "main": "dist/message_relay.prod.module.js",
   "scripts": {
@@ -29,6 +29,7 @@
   "types": "./dist/message_relay.prod.moodule.d.ts",
   "homepage": "https://github.com/ecaroth/chrome-extension-message-relay",
   "devDependencies": {
+    "@types/node": "^18.14.6",
     "babel-core": "^6.26.3",
     "babel-preset-es2015": "^6.14.0",
     "event-stream": "^3.3.5",

@@ -1,4 +1,4 @@
-/* Version 3.0.9 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.0.11 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -402,7 +402,7 @@
             const {component, namespace, type} = _getMtypeInfo(msgType);
 
             if(component){
-                if([LEVELS.content, LEVELS.page], LEVELS.iframe_shim.includes(level)){
+                if([LEVELS.content, LEVELS.page, LEVELS.iframe_shim].includes(level)){
                     // Handle specific reception cases in parent (CONTENT/PAGE)
 
                     const cWindow = _lastSender;
