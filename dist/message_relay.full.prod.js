@@ -1,4 +1,4 @@
-/* Version 3.0.11 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.0.12 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -295,12 +295,19 @@
                                 }
                             }
 
+                            const frameUrl = new URL(iframes[i].src);
+                            const thisUrl = new URL(window.location.href);
                             let target = '*';
                             if(level === LEVELS.content) {
                                 // If sending from content, only send the message to iframes in our extension
                                 target = "chrome-extension://" + chrome.runtime.id;
-                                if (!iframes[i].src.startsWith(target)) continue;
+                                if(frameUrl.origin !== target) continue;
                             }
+                            // If calling from page level, validate origin before postMessage
+                            if(level === LEVELS.page){
+                                if(thisUrl.origin !== frameUrl.origin) continue;
+                            }
+
                             // TODO -- handle whitelisting domains if NOT shimming???
                             iframes[i].contentWindow.postMessage(msg, target);
                         }

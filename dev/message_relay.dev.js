@@ -293,12 +293,19 @@
                                 }
                             }
 
+                            const frameUrl = new URL(iframes[i].src);
+                            const thisUrl = new URL(window.location.href);
                             let target = '*';
                             if(level === LEVELS.content) {
                                 // If sending from content, only send the message to iframes in our extension
                                 target = "chrome-extension://" + chrome.runtime.id;
-                                if (!iframes[i].src.startsWith(target)) continue;
+                                if(frameUrl.origin !== target) continue;
                             }
+                            // If calling from page level, validate origin before postMessage
+                            if(level === LEVELS.page){
+                                if(thisUrl.origin !== frameUrl.origin) continue;
+                            }
+
                             // TODO -- handle whitelisting domains if NOT shimming???
                             iframes[i].contentWindow.postMessage(msg, target);
                         }
