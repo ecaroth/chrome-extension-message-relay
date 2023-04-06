@@ -1,6 +1,6 @@
 {
   "name": "chrome-extension-message-relay",
-  "version": "3.0.12",
+  "version": "3.0.13",
   "description": "A library to work with message passing at various levels of the browser for Chrome Extensions",
   "main": "dist/message_relay.prod.module.js",
   "scripts": {

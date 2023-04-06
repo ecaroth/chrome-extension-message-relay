@@ -1,4 +1,4 @@
-/* Version 3.0.12 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.0.13 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -285,7 +285,6 @@
                         const {component} = _getMtypeInfo(msg.msgType);
                         for(let i=0; i<iframes.length; i++){
 
-                            // TODO -- handle specific `component` logic here
                             if(component && !component.startsWith(COMPONENT_NAME_ALL_PREFIX)){
                                 // if this message is targetted at a specific component only send to that iframe
                                 // NOTE this might be overkill as it'll get filtered out in the iframe relays anyway,
@@ -295,21 +294,24 @@
                                 }
                             }
 
-                            const frameUrl = new URL(iframes[i].src);
-                            const thisUrl = new URL(window.location.href);
-                            let target = '*';
-                            if(level === LEVELS.content) {
-                                // If sending from content, only send the message to iframes in our extension
-                                target = "chrome-extension://" + chrome.runtime.id;
-                                if(frameUrl.origin !== target) continue;
-                            }
-                            // If calling from page level, validate origin before postMessage
-                            if(level === LEVELS.page){
-                                if(thisUrl.origin !== frameUrl.origin) continue;
+                            if(LEVELS.content === level){
+                                const validOrigins = [
+                                    "chrome-extension://" + chrome.runtime.id,
+                                    window.location.origin
+                                ];
+                                let frameUrl;
+                                try {
+                                    frameUrl = new URL(iframes[i].src);
+                                }catch(e){
+                                    continue;
+                                }
+                                if (!validOrigins.includes(frameUrl.origin)){
+                                    // If sending from content or page, only send the message to iframes in our extension
+                                    continue;
+                                }
                             }
 
-                            // TODO -- handle whitelisting domains if NOT shimming???
-                            iframes[i].contentWindow.postMessage(msg, target);
+                            iframes[i].contentWindow.postMessage(msg, '*');
                         }
 
                 }else{
