@@ -1,4 +1,4 @@
-/* Version 3.0.13 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.0.14 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -555,7 +555,7 @@
             if(level === LEVELS.iframe || forceLocal){
                 return _localSendMsg( msgType, data);
             }
-            _sendDown(msgType, LEVELS.iframe);
+            _sendDown(msgType, LEVELS.iframe, data);
         }
 
         function _componentOn (msgType, componentName, cb, isOnce=false){

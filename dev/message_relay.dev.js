@@ -553,7 +553,7 @@
             if(level === LEVELS.iframe || forceLocal){
                 return _localSendMsg( msgType, data);
             }
-            _sendDown(msgType, LEVELS.iframe);
+            _sendDown(msgType, LEVELS.iframe, data);
         }
 
         function _componentOn (msgType, componentName, cb, isOnce=false){
