@@ -65,20 +65,38 @@
             if( typeof msgTypes === 'string' ) msgTypes = [msgTypes];
             if(limitFromLevels && !Array.isArray(limitFromLevels)) limitFromLevels = [limitFromLevels];
 
+            const bound = [];
             msgTypes.forEach((msgType) =>{
                 let mtypeInfo = _getMtypeInfo(msgType);
                 if(!(mtypeInfo.type in _listeners)) _listeners[mtypeInfo.type] = [];
+                const bindId = _guid();
                 _listeners[mtypeInfo.type].push({
                     fn: cb,
                     ns: mtypeInfo.namespace,
                     limitFromLevels,
                     componentFilter,
-                    isOnce
+                    isOnce,
+                    bindId
                 });
+                bound.push({
+                    msgType: mtypeInfo.type,
+                    bindId
+                });
+            });
+            return bound;
+        }
+
+        // unbind any number of bind referenced listeners (in format [{msgType, bindId}, ...]
+        function _offBound(boundListeners){
+            if(!Array.isArray(boundListeners)) boundListeners = [boundListeners];
+            boundListeners.filter(b => !!b).forEach(bound => {
+                if(!(bound.msgType in _listeners)) return;
+                const index = _listeners[bound.msgType].find(l => l.bindId === bound.bindId);
+                if(index !== -1) _listeners[bound.msgType].splice(index, 1);
             });
         }
 
-        //this function allows you to unbind any msg type as a listener (with a sepcified namespace or ALL events of this type(s) if no namespace is supplied)
+        // this function allows you to unbind any msg type as a listener (with a sepcified namespace or ALL events of this type(s) if no namespace is supplied)
         function _unbind(msgTypes, componentId=null){
             // TODO handle componentId ? (might not be needed)
             if(componentId){}
@@ -561,7 +579,7 @@
                 throw new ChromeExtensionMessageRelayError("Cannot bind component on listeners in this level");
             }
             const targetComponent = COMPONENT_NAME_ALL_PREFIX + componentName;
-            _bind(msgType, cb, [LEVELS.iframe, LEVELS.iframe_shim], isOnce, targetComponent );
+            return _bind(msgType, cb, [LEVELS.iframe, LEVELS.iframe_shim], isOnce, targetComponent );
         }
 
         function _deleteInterval(){
@@ -589,6 +607,7 @@
         }
 
         function _guid(){
+            if(typeof crypto !== 'undefined') return crypto.randomUUID();
             return Math.random().toString(36).substring(2, 15) +
                 Math.random().toString(36).substring(2, 15);
         }
@@ -710,10 +729,13 @@
             },
             on: _bind,                      // Bind listener for msg event
             onOnce: (msgTypes, cb, limitFromLevels= null) => {  // Bind listener for a single callback
-                _bind(msgTypes, cb, limitFromLevels, true);
+                return _bind(msgTypes, cb, limitFromLevels, true);
             },
             off: (msgTypes) => {            // Unbind listener for msg event
                 _unbind(msgTypes);
+            },
+            offBound: (bound) => {
+                _offBound(bound);
             },
             componentOff: (msgTypes, componentId) => {
                 _unbind(msgTypes, componentId);

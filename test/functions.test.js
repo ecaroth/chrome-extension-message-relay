@@ -350,20 +350,24 @@ describe("Individual internal functions", function(){
 
 		it("bind single event to new message type with namespace", function(){
 			var cb = function(){};
-			_bind("foo.bar", cb);
+			const bound = _bind("foo.bar", cb)[0];
 			var l = _get_listeners();
 			expect(l.foo.length).to.be(1);
 			expect(l.foo[0].fn).to.be(cb);
 			expect(l.foo[0].ns).to.be("bar");
+			expect(l.foo[0].bindId).to.be(bound.bindId);
+			expect(bound.msgType).to.be("foo");
 		});
 
 		it("bind single event to new message type with no namespace", function(){
 			var cb = function(){};
-			_bind("foo", cb);
+			const bound = _bind("foo", cb)[0];
 			var l = _get_listeners();
 			expect(l.foo.length).to.be(1);
 			expect(l.foo[0].fn).to.be(cb);
 			expect(l.foo[0].ns).to.be(null);
+			expect(l.foo[0].bindId).to.be(bound.bindId);
+			expect(bound.msgType).to.be("foo");
 		});
 
 		it("bind two events to different message types", function(){
@@ -414,6 +418,37 @@ describe("Individual internal functions", function(){
 			expect(l.bar[0].fn).to.be(cb);
 			expect(l.bar[0].ns).to.be("baz");
 		});
+	});
+
+	describe('_offBound', function(){
+		var _bind, _offBound;
+
+		beforeEach(() => {
+			_bind = RELAY.test.token('_bind');
+			_offBound = RELAY.test.token('_offBound');
+		});
+
+		it('works as expected', () => {
+			var cb1 = function(){},
+				cb2 = function(){};
+			const bound = [].concat(
+				_bind("foo", cb1),
+				_bind("bar", cb2)
+			);
+			expect(bound.length).to.be(2);
+
+			var l = _get_listeners();
+			expect(Object.keys(l)).to.eql(['foo','bar'])
+			expect(l.foo.length).to.be(1);
+			expect(l.foo[0].fn).to.be(cb1);
+			expect(l.bar.length).to.be(1);
+			expect(l.bar[0].fn).to.be(cb2);
+
+			_offBound(bound);
+			l = _get_listeners();
+			expect(l.foo.length).to.be(0);
+			expect(l.bar.length).to.be(0);
+		})
 	});
 
 	describe('_unbindAll', function(){
