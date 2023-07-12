@@ -1,4 +1,4 @@
-/* Version 3.0.15 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.0.16 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -445,12 +445,12 @@
                             // existing in that specific frame
 
                             const dataAttr = _componentIdDataAttr(component);
-                            iframe.setAttribute(dataAttr, COMPONENT_STATE.ready);
+                            if(iframe) iframe.setAttribute(dataAttr, COMPONENT_STATE.ready);
 
                             let new_msgType = _buildComponentStateMsgType(COMPONENT_STATE.initEnv, component);
                             return _sendDown(new_msgType, LEVELS.iframe, _componentEnvData);
                         }
-                        if (type === COMPONENT_STATE.initialized) {
+                        if (type === COMPONENT_STATE.initialized && iframe) {
                             // when iframe is component is fully initialized, set the component ID on the iframe and alert
                             // any fire an explicity call to component ready listeners
                             // TODO
@@ -463,7 +463,6 @@
                                 item.fn(compName, iframe, _lastSender);
                             });
                         }
-                        // TODO -- anything else?
                     }
                 }
             }

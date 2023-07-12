@@ -443,12 +443,12 @@
                             // existing in that specific frame
 
                             const dataAttr = _componentIdDataAttr(component);
-                            iframe.setAttribute(dataAttr, COMPONENT_STATE.ready);
+                            if(iframe) iframe.setAttribute(dataAttr, COMPONENT_STATE.ready);
 
                             let new_msgType = _buildComponentStateMsgType(COMPONENT_STATE.initEnv, component);
                             return _sendDown(new_msgType, LEVELS.iframe, _componentEnvData);
                         }
-                        if (type === COMPONENT_STATE.initialized) {
+                        if (type === COMPONENT_STATE.initialized && iframe) {
                             // when iframe is component is fully initialized, set the component ID on the iframe and alert
                             // any fire an explicity call to component ready listeners
                             // TODO
@@ -461,7 +461,6 @@
                                 item.fn(compName, iframe, _lastSender);
                             });
                         }
-                        // TODO -- anything else?
                     }
                 }
             }
