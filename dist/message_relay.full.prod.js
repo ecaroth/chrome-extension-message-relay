@@ -1,4 +1,4 @@
-/* Version 3.0.16 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
+/* Version 3.1.0 chrome-extension-message-relay (https://github.com/ecaroth/chrome-extension-message-relay), Authored by Evan Carothers */
 
 // IMPORTANT NOTE!
 // DO NOT use this version of the script in production, this is the dev/build version that exposes internal
@@ -473,6 +473,9 @@
             for(let i=listeners.length-1; i >=0; i--){
                 const listener = listeners[i];
                 const limitFrom = listener.limitFromLevels;
+                if(namespace && listener.ns !== namespace){
+                    continue;
+                }
                 if(!limitFrom || limitFrom.includes(sourceLevel)){
 
                     if(component && [LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)) {

@@ -471,6 +471,9 @@
             for(let i=listeners.length-1; i >=0; i--){
                 const listener = listeners[i];
                 const limitFrom = listener.limitFromLevels;
+                if(namespace && listener.ns !== namespace){
+                    continue;
+                }
                 if(!limitFrom || limitFrom.includes(sourceLevel)){
 
                     if(component && [LEVELS.page, LEVELS.content, LEVELS.iframe_shim].includes(level)) {
